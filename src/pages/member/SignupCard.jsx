@@ -2,25 +2,7 @@ import { useEffect, useState } from 'react'
 import QRCode from 'qrcode'
 import { supabase } from '../../lib/supabaseClient'
 import { useAuth } from '../../context/AuthContext'
-
-function buildIpsQrString({ accountNumber, recipientName, amount, purposeCode, refCode }) {
-  const amountFormatted = amount.toFixed(2).replace('.', ',')
-  return [
-    'K:PR', 'V:01', 'C:1',
-    `R:${accountNumber}`,
-    `N:${recipientName}`,
-    `I:RSD${amountFormatted}`,
-    `SF:${purposeCode}`,
-    `RO:${refCode}`
-  ].join('|')
-}
-
-function makeRefCode(period, memberId) {
-  const yy = period.slice(2, 4)
-  const mm = period.slice(5, 7)
-  const suffix = memberId.replace(/-/g, '').slice(-4).toUpperCase()
-  return `${yy}${mm}-${suffix}`
-}
+import { buildIpsQrString, makeRefCode } from '../../lib/ips'
 
 export default function SignupCard() {
   const { profile } = useAuth()

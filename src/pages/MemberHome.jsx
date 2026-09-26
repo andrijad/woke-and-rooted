@@ -1,5 +1,6 @@
 import { useAuth } from '../context/AuthContext'
 import SignupCard from './member/SignupCard'
+import DropinCard from './member/DropinCard'
 
 export default function MemberHome() {
   const { profile, logout } = useAuth()
@@ -10,6 +11,7 @@ export default function MemberHome() {
         <button onClick={logout}>Izloguj se</button>
       </div>
       <SignupCard />
+      <DropinCard />
     </div>
   )
 }

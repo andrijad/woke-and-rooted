@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext'
 import MembersList from './admin/MembersList'
 import Payments from './admin/Payments'
 import Periods from './admin/Periods'
+import Dropins from './admin/Dropins'
 
 export default function AdminHome() {
   const { profile, logout } = useAuth()
@@ -14,14 +15,16 @@ export default function AdminHome() {
         <h1 style={{ fontSize: 20 }}>Zdravo, {profile?.full_name || 'vlasnice'}</h1>
         <button onClick={logout}>Izloguj se</button>
       </div>
-      <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
+      <div style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap' }}>
         <button onClick={() => setTab('members')} style={{ fontWeight: tab === 'members' ? 700 : 400 }}>Članovi</button>
         <button onClick={() => setTab('payments')} style={{ fontWeight: tab === 'payments' ? 700 : 400 }}>Uplate</button>
         <button onClick={() => setTab('periods')} style={{ fontWeight: tab === 'periods' ? 700 : 400 }}>Termini</button>
+        <button onClick={() => setTab('dropins')} style={{ fontWeight: tab === 'dropins' ? 700 : 400 }}>Individualni</button>
       </div>
       {tab === 'members' && <MembersList />}
       {tab === 'payments' && <Payments />}
       {tab === 'periods' && <Periods />}
+      {tab === 'dropins' && <Dropins />}
     </div>
   )
 }
