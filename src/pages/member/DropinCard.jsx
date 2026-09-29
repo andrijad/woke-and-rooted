@@ -3,15 +3,18 @@ import QRCode from 'qrcode'
 import { supabase } from '../../lib/supabaseClient'
 import { useAuth } from '../../context/AuthContext'
 import { buildIpsQrString, makeDropinRefCode } from '../../lib/ips'
+import { computeUpcomingSessions, formatSessionLabel } from '../../lib/schedule'
 
 export default function DropinCard() {
   const { profile } = useAuth()
   const [groups, setGroups] = useState([])
   const [settings, setSettings] = useState(null)
   const [selectedGroup, setSelectedGroup] = useState('')
-  const [sessionDate, setSessionDate] = useState('')
+  const [sessions, setSessions] = useState([])
+  const [selectedDate, setSelectedDate] = useState('')
   const [signingUp, setSigningUp] = useState(false)
   const [result, setResult] = useState(null)
+  const [loadingSessions, setLoadingSessions] = useState(false)
 
   useEffect(() => { if (profile) load() }, [profile])
 
@@ -24,20 +27,36 @@ export default function DropinCard() {
     setSettings(settingsData || null)
   }
 
+  async function handleGroupChange(groupId) {
+    setSelectedGroup(groupId)
+    setSelectedDate('')
+    setSessions([])
+    if (!groupId) return
+    setLoadingSessions(true)
+    const [{ data: scheduleData }, { data: myDropins }] = await Promise.all([
+      supabase.from('group_schedule').select('*').eq('group_id', groupId),
+      supabase.from('dropin_signups').select('session_date').eq('group_id', groupId).eq('member_id', profile.id)
+    ])
+    const taken = new Set((myDropins || []).map(d => d.session_date))
+    const upcoming = computeUpcomingSessions(scheduleData || [], 10).filter(s => !taken.has(s.date))
+    setSessions(upcoming)
+    setLoadingSessions(false)
+  }
+
   async function handleSubmit(e) {
     e.preventDefault()
-    if (!selectedGroup || !sessionDate) return
+    if (!selectedGroup || !selectedDate) return
     setSigningUp(true)
     setResult(null)
     const group = groups.find(g => g.id === selectedGroup)
-    const refCode = makeDropinRefCode(sessionDate, profile.id, selectedGroup)
+    const refCode = makeDropinRefCode(selectedDate, profile.id, selectedGroup)
 
     const { data, error } = await supabase
       .from('dropin_signups')
       .insert({
         group_id: selectedGroup,
         member_id: profile.id,
-        session_date: sessionDate,
+        session_date: selectedDate,
         amount: group.dropin_price,
         ref_code: refCode,
         status: 'due'
@@ -70,18 +89,33 @@ export default function DropinCard() {
       <h3 style={{ marginTop: 0 }}>Individualni čas</h3>
       {!result?.signup && (
         <form onSubmit={handleSubmit}>
-          <select value={selectedGroup} onChange={e => setSelectedGroup(e.target.value)} required
+          <select value={selectedGroup} onChange={e => handleGroupChange(e.target.value)} required
             style={{ display: 'block', width: '100%', margin: '8px 0', padding: 8 }}>
             <option value="">— izaberi grupu —</option>
             {groups.map(g => (
               <option key={g.id} value={g.id}>{g.name} · {g.dropin_price} RSD</option>
             ))}
           </select>
-          <input
-            type="date" value={sessionDate} onChange={e => setSessionDate(e.target.value)} required
-            style={{ display: 'block', width: '100%', margin: '8px 0', padding: 8 }}
-          />
-          <button type="submit" disabled={signingUp}>Prijavi se</button>
+
+          {selectedGroup && loadingSessions && <p>Učitavanje termina...</p>}
+
+          {selectedGroup && !loadingSessions && sessions.length === 0 && (
+            <p style={{ fontSize: 13, color: '#a33' }}>
+              Ova grupa još nema definisane termine.
+            </p>
+          )}
+
+          {sessions.length > 0 && (
+            <select value={selectedDate} onChange={e => setSelectedDate(e.target.value)} required
+              style={{ display: 'block', width: '100%', margin: '8px 0', padding: 8 }}>
+              <option value="">— izaberi termin —</option>
+              {sessions.map(s => (
+                <option key={s.date} value={s.date}>{formatSessionLabel(s)}</option>
+              ))}
+            </select>
+          )}
+
+          <button type="submit" disabled={signingUp || !selectedDate}>Prijavi se</button>
         </form>
       )}
       {result?.error && <p style={{ color: 'crimson' }}>{result.error}</p>}

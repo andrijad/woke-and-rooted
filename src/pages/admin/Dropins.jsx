@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabaseClient'
 import { makeDropinRefCode } from '../../lib/ips'
+import { computeUpcomingSessions, formatSessionLabel } from '../../lib/schedule'
 
 export default function Dropins() {
   const [rows, setRows] = useState([])
@@ -8,6 +9,7 @@ export default function Dropins() {
   const [members, setMembers] = useState([])
   const [loading, setLoading] = useState(true)
   const [form, setForm] = useState({ member_id: '', group_id: '', session_date: '' })
+  const [sessions, setSessions] = useState([])
   const [saving, setSaving] = useState(false)
   const [formError, setFormError] = useState('')
 
@@ -35,6 +37,13 @@ export default function Dropins() {
     await load()
   }
 
+  async function handleGroupChange(groupId) {
+    setForm({ ...form, group_id: groupId, session_date: '' })
+    if (!groupId) { setSessions([]); return }
+    const { data } = await supabase.from('group_schedule').select('*').eq('group_id', groupId)
+    setSessions(computeUpcomingSessions(data || [], 10))
+  }
+
   async function handleAdd(e) {
     e.preventDefault()
     setFormError('')
@@ -52,7 +61,7 @@ export default function Dropins() {
       added_by_admin: true
     })
     if (error) setFormError(error.message)
-    else setForm({ member_id: '', group_id: '', session_date: '' })
+    else { setForm({ member_id: '', group_id: '', session_date: '' }); setSessions([]) }
     await load()
     setSaving(false)
   }
@@ -67,11 +76,15 @@ export default function Dropins() {
           <option value="">— član —</option>
           {members.map(m => <option key={m.id} value={m.id}>{m.full_name}</option>)}
         </select>
-        <select value={form.group_id} onChange={e => setForm({ ...form, group_id: e.target.value })} required>
+        <select value={form.group_id} onChange={e => handleGroupChange(e.target.value)} required>
           <option value="">— grupa —</option>
           {groups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
         </select>
-        <input type="date" value={form.session_date} onChange={e => setForm({ ...form, session_date: e.target.value })} required />
+        <select value={form.session_date} onChange={e => setForm({ ...form, session_date: e.target.value })}
+          required disabled={sessions.length === 0}>
+          <option value="">— termin —</option>
+          {sessions.map(s => <option key={s.date} value={s.date}>{formatSessionLabel(s)}</option>)}
+        </select>
         <button type="submit" disabled={saving}>Dodaj (i preko kapaciteta ako treba)</button>
       </form>
       {formError && <p style={{ color: 'crimson' }}>{formError}</p>}
