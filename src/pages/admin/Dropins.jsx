@@ -21,7 +21,7 @@ export default function Dropins() {
       supabase.from('dropin_signups')
         .select('id, session_date, amount, status, ref_code, added_by_admin, profiles(full_name), groups(name)')
         .order('session_date', { ascending: false }),
-      supabase.from('groups').select('*').eq('active', true).order('name'),
+      supabase.from('groups').select('*').eq('active', true).eq('archived', false).order('name'),
       supabase.from('profiles').select('*').eq('is_admin', false).order('full_name')
     ])
     setRows(rowsData || [])
@@ -60,8 +60,16 @@ export default function Dropins() {
       status: 'due',
       added_by_admin: true
     })
-    if (error) setFormError(error.message)
-    else { setForm({ member_id: '', group_id: '', session_date: '' }); setSessions([]) }
+    if (error) {
+      if (error.code === '23505') {
+        setFormError('Ovaj član je već prijavljen za izabrani termin.')
+      } else {
+        setFormError('Došlo je do greške. Pokušaj ponovo.')
+      }
+    } else {
+      setForm({ member_id: '', group_id: '', session_date: '' })
+      setSessions([])
+    }
     await load()
     setSaving(false)
   }

@@ -1,10 +1,8 @@
 import { useState } from 'react'
 import { useAuth } from '../context/AuthContext'
-import MembersList from './admin/MembersList'
-import Payments from './admin/Payments'
-import Periods from './admin/Periods'
-import Dropins from './admin/Dropins'
-import GroupsManager from './admin/GroupsManager'
+import MembersManager from './admin/MembersManager'
+import GroupsAndEvents from './admin/GroupsAndEvents'
+import SignupsOverview from './admin/SignupsOverview'
 
 export default function AdminHome() {
   const { profile, logout } = useAuth()
@@ -18,16 +16,12 @@ export default function AdminHome() {
       </div>
       <div style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap' }}>
         <button onClick={() => setTab('members')} style={{ fontWeight: tab === 'members' ? 700 : 400 }}>Članovi</button>
-        <button onClick={() => setTab('payments')} style={{ fontWeight: tab === 'payments' ? 700 : 400 }}>Uplate</button>
-        <button onClick={() => setTab('periods')} style={{ fontWeight: tab === 'periods' ? 700 : 400 }}>Termini</button>
-        <button onClick={() => setTab('dropins')} style={{ fontWeight: tab === 'dropins' ? 700 : 400 }}>Individualni</button>
-        <button onClick={() => setTab('groups')} style={{ fontWeight: tab === 'groups' ? 700 : 400 }}>Grupe</button>
+        <button onClick={() => setTab('groupsEvents')} style={{ fontWeight: tab === 'groupsEvents' ? 700 : 400 }}>Grupe i događaji</button>
+        <button onClick={() => setTab('signups')} style={{ fontWeight: tab === 'signups' ? 700 : 400 }}>Termini i uplate</button>
       </div>
-      {tab === 'members' && <MembersList />}
-      {tab === 'payments' && <Payments />}
-      {tab === 'periods' && <Periods />}
-      {tab === 'dropins' && <Dropins />}
-      {tab === 'groups' && <GroupsManager />}
+      {tab === 'members' && <MembersManager />}
+      {tab === 'groupsEvents' && <GroupsAndEvents />}
+      {tab === 'signups' && <SignupsOverview />}
     </div>
   )
 }

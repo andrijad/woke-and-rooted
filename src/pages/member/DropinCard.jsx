@@ -20,7 +20,7 @@ export default function DropinCard() {
 
   async function load() {
     const [{ data: groupsData }, { data: settingsData }] = await Promise.all([
-      supabase.from('groups').select('*').eq('active', true).order('name'),
+      supabase.from('groups').select('*').eq('active', true).eq('archived', false).order('name'),
       supabase.from('studio_settings').select('*').eq('id', 1).single()
     ])
     setGroups(groupsData || [])

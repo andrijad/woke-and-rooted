@@ -1,6 +1,7 @@
 import { useAuth } from '../context/AuthContext'
 import SignupCard from './member/SignupCard'
 import DropinCard from './member/DropinCard'
+import EventsCard from './member/EventsCard'
 
 export default function MemberHome() {
   const { profile, logout } = useAuth()
@@ -12,6 +13,7 @@ export default function MemberHome() {
       </div>
       <SignupCard />
       <DropinCard />
+      <EventsCard />
     </div>
   )
 }

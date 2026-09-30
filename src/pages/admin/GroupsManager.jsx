@@ -14,7 +14,7 @@ const WEEKDAYS = [
 
 const BLANK = {
   name: '', monthly_price: '', dropin_price: '', capacity: '',
-  description_short: '', description_html: ''
+  description_short: '', description_html: '', archived: false
 }
 
 export default function GroupsManager() {
@@ -45,7 +45,8 @@ export default function GroupsManager() {
       dropin_price: group.dropin_price,
       capacity: group.capacity ?? '',
       description_short: group.description_short || '',
-      description_html: group.description_html || ''
+      description_html: group.description_html || '',
+      archived: group.archived
     })
     const { data } = await supabase.from('group_schedule').select('*').eq('group_id', id).order('weekday')
     setSchedule(data || [])
@@ -60,7 +61,8 @@ export default function GroupsManager() {
       dropin_price: Number(form.dropin_price),
       capacity: form.capacity === '' ? null : Number(form.capacity),
       description_short: form.description_short,
-      description_html: form.description_html
+      description_html: form.description_html,
+      archived: form.archived
     }
     if (selectedId) {
       const { error } = await supabase.from('groups').update(payload).eq('id', selectedId)
@@ -98,7 +100,9 @@ export default function GroupsManager() {
       <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
         <select value={selectedId || ''} onChange={e => selectGroup(e.target.value || null)}>
           <option value="">— Nova grupa —</option>
-          {groups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
+          {groups.map(g => (
+            <option key={g.id} value={g.id}>{g.name}{g.archived && ' (arhivirano)'}</option>
+          ))}
         </select>
       </div>
 
@@ -120,6 +124,11 @@ export default function GroupsManager() {
         <input placeholder="Kratak opis (prikazuje se u listi)" value={form.description_short}
           onChange={e => setForm({ ...form, description_short: e.target.value })}
           style={{ display: 'block', width: '100%', margin: '6px 0', padding: 8 }} />
+
+        <label style={{ display: 'block', margin: '10px 0', fontSize: 14 }}>
+          <input type="checkbox" checked={form.archived}
+            onChange={e => setForm({ ...form, archived: e.target.checked })} /> Arhivirano (sakriveno od članova, ti i dalje vidiš)
+        </label>
 
         <p style={{ fontSize: 13, fontWeight: 700, marginTop: 12 }}>Pun opis</p>
         <RichTextEditor
@@ -153,6 +162,10 @@ export default function GroupsManager() {
           </div>
         </div>
       )}
+
+      <p style={{ fontSize: 13, color: '#666', marginTop: 20 }}>
+        Spiskovi prijavljenih članova i statusi uplata za ovu grupu su u tabu „Termini i uplate".
+      </p>
     </div>
   )
 }

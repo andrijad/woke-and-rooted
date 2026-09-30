@@ -25,3 +25,9 @@ export function makeDropinRefCode(sessionDate, memberId, groupId) {
   const groupSuffix = groupId.replace(/-/g, '').slice(-2).toUpperCase()
   return `${yy}${mm}${dd}-${memberSuffix}${groupSuffix}`
 }
+
+export function makeEventRefCode(eventId, memberId) {
+  const eventSuffix = eventId.replace(/-/g, '').slice(-4).toUpperCase()
+  const memberSuffix = memberId.replace(/-/g, '').slice(-3).toUpperCase()
+  return `DOG-${eventSuffix}${memberSuffix}`
+}
