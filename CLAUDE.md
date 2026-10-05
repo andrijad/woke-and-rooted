@@ -21,7 +21,7 @@ Aplikacija za studio joge (vlasnica = admin; članovi = korisnici). Vite + React
 - `group_signup_periods` — vlasnica otvara/zatvara prijave **po grupi i mesecu** (period = prvi dan meseca).
 - `monthly_signups` — jedna grupa po članu po mesecu (unique index na member_id+period). Članovi sami biraju grupu iz otvorenih.
 - `dropin_signups` — individualni časovi; `event_signups` — jednokratni događaji; `events` (capacity, archived, published).
-- `group_memberships` / `admin_set_member_group` — **zastarelo** za mesečne prijave (članovi sami biraju). Ne oslanjati se na to.
+- Dodela članova grupama (`group_memberships`, `admin_set_member_group`) je uklonjena u 019 — članovi sami biraju grupu iz otvorenih prijava.
 - Statusi uplate: `due` → `paid`; potvrđuje samo vlasnica.
 
 ## Registracija
