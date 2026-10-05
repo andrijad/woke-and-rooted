@@ -93,11 +93,11 @@ export default function GroupsManager() {
     setSchedule(schedule.filter(s => s.id !== id))
   }
 
-  if (loading) return <p>Učitavanje...</p>
+  if (loading) return <p className="muted">Učitavanje...</p>
 
   return (
     <div>
-      <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
+      <div className="row mb">
         <select value={selectedId || ''} onChange={e => selectGroup(e.target.value || null)}>
           <option value="">— Nova grupa —</option>
           {groups.map(g => (
@@ -107,63 +107,58 @@ export default function GroupsManager() {
       </div>
 
       <form onSubmit={handleSave}>
-        <input placeholder="Naziv grupe" value={form.name}
-          onChange={e => setForm({ ...form, name: e.target.value })} required
-          style={{ display: 'block', width: '100%', margin: '6px 0', padding: 8 }} />
-        <div style={{ display: 'flex', gap: 8 }}>
-          <input type="number" placeholder="Mesečna cena (RSD)" value={form.monthly_price}
-            onChange={e => setForm({ ...form, monthly_price: e.target.value })} required
-            style={{ flex: 1, padding: 8 }} />
-          <input type="number" placeholder="Cena individualnog (RSD)" value={form.dropin_price}
-            onChange={e => setForm({ ...form, dropin_price: e.target.value })} required
-            style={{ flex: 1, padding: 8 }} />
-          <input type="number" placeholder="Kapacitet (opciono)" value={form.capacity}
-            onChange={e => setForm({ ...form, capacity: e.target.value })}
-            style={{ flex: 1, padding: 8 }} />
+        <input className="field" placeholder="Naziv grupe" value={form.name}
+          onChange={e => setForm({ ...form, name: e.target.value })} required />
+        <div className="row nowrap">
+          <input className="grow" type="number" placeholder="Mesečna cena (RSD)" value={form.monthly_price}
+            onChange={e => setForm({ ...form, monthly_price: e.target.value })} required />
+          <input className="grow" type="number" placeholder="Cena individualnog (RSD)" value={form.dropin_price}
+            onChange={e => setForm({ ...form, dropin_price: e.target.value })} required />
+          <input className="grow" type="number" placeholder="Kapacitet (opciono)" value={form.capacity}
+            onChange={e => setForm({ ...form, capacity: e.target.value })} />
         </div>
-        <input placeholder="Kratak opis (prikazuje se u listi)" value={form.description_short}
-          onChange={e => setForm({ ...form, description_short: e.target.value })}
-          style={{ display: 'block', width: '100%', margin: '6px 0', padding: 8 }} />
+        <input className="field" placeholder="Kratak opis (prikazuje se u listi)" value={form.description_short}
+          onChange={e => setForm({ ...form, description_short: e.target.value })} />
 
-        <label style={{ display: 'block', margin: '10px 0', fontSize: 14 }}>
+        <label className="check">
           <input type="checkbox" checked={form.archived}
             onChange={e => setForm({ ...form, archived: e.target.checked })} /> Arhivirano (sakriveno od članova, ti i dalje vidiš)
         </label>
 
-        <p style={{ fontSize: 13, fontWeight: 700, marginTop: 12 }}>Pun opis</p>
+        <p className="small strong mt">Pun opis</p>
         <RichTextEditor
           value={form.description_html}
           onChange={html => setForm({ ...form, description_html: html })}
         />
 
-        <button type="submit" disabled={saving} style={{ marginTop: 12 }}>
+        <button type="submit" className="mt" disabled={saving}>
           {selectedId ? 'Sačuvaj izmene' : 'Napravi grupu'}
         </button>
       </form>
 
       {selectedId && (
-        <div style={{ marginTop: 28 }}>
-          <h3 style={{ fontSize: 15 }}>Termini</h3>
+        <div className="section">
+          <h3>Termini</h3>
           <ul>
             {schedule.map(s => (
               <li key={s.id}>
                 {WEEKDAYS.find(w => w.value === s.weekday)?.label} {s.start_time.slice(0, 5)}h
-                {' '}<button type="button" onClick={() => removeScheduleRow(s.id)}>Obriši</button>
+                {' '}<button type="button" className="btn-danger btn-sm" onClick={() => removeScheduleRow(s.id)}>Obriši</button>
               </li>
             ))}
           </ul>
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <div className="row">
             <select value={newDay.weekday} onChange={e => setNewDay({ ...newDay, weekday: e.target.value })}>
               {WEEKDAYS.map(w => <option key={w.value} value={w.value}>{w.label}</option>)}
             </select>
-            <input type="time" value={newDay.start_time}
+            <input className="grow" type="time" value={newDay.start_time}
               onChange={e => setNewDay({ ...newDay, start_time: e.target.value })} />
             <button type="button" onClick={addScheduleRow}>Dodaj termin</button>
           </div>
         </div>
       )}
 
-      <p style={{ fontSize: 13, color: '#666', marginTop: 20 }}>
+      <p className="small muted mt">
         Spiskovi prijavljenih članova i statusi uplata za ovu grupu su u tabu „Termini i uplate".
       </p>
     </div>

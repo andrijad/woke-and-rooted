@@ -204,48 +204,47 @@ export default function MembersManager() {
     setEventSaving(false)
   }
 
-  if (loading) return <p>Učitavanje...</p>
+  if (loading) return <p className="muted">Učitavanje...</p>
 
   return (
     <div>
-      <h3 style={{ fontSize: 16 }}>Članovi</h3>
+      <h3>Članovi</h3>
       <AddMemberForm onAdded={load} />
-      <div style={{ marginBottom: 16 }}>
-        <button onClick={() => createInvite(null)}>Novi link za registraciju</button>
+      <div className="mb">
+        <button className="btn-ghost" onClick={() => createInvite(null)}>Novi link za registraciju</button>
         {inviteLink && (
-          <div style={{ border: '1px solid #ddd', borderRadius: 12, padding: 12, marginTop: 8 }}>
-            <p style={{ margin: '0 0 6px', fontSize: 13 }}>
+          <div className="card mt">
+            <p className="small">
               Link{inviteFor ? ` za ${inviteFor}` : ''} važi 7 dana i može da se iskoristi jednom.
             </p>
-            <input readOnly value={inviteLink} onFocus={e => e.target.select()}
-              style={{ width: '100%', padding: 8, boxSizing: 'border-box', fontSize: 12 }} />
-            <button onClick={copyInvite} style={{ marginTop: 6 }}>{copied ? '✓ Kopirano' : 'Kopiraj link'}</button>
+            <input className="field" readOnly value={inviteLink} onFocus={e => e.target.select()} />
+            <button onClick={copyInvite}>{copied ? '✓ Kopirano' : 'Kopiraj link'}</button>
           </div>
         )}
       </div>
-      {members.length === 0 && <p>Nema još registrovanih članova.</p>}
+      {members.length === 0 && <p className="muted">Nema još registrovanih članova.</p>}
       {members.length > 0 && (
-        <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: 32 }}>
+        <div className="scroll-x"><table>
           <thead>
-            <tr style={{ textAlign: 'left', borderBottom: '1px solid #ddd' }}>
-              <th style={{ padding: 8 }}>Ime</th>
-              <th style={{ padding: 8 }}>Kontakt</th>
-              <th style={{ padding: 8 }}>Redovna grupa</th>
-              <th style={{ padding: 8 }}></th>
+            <tr>
+              <th>Ime</th>
+              <th>Kontakt</th>
+              <th>Redovna grupa</th>
+              <th></th>
             </tr>
           </thead>
           <tbody>
             {members.map(m => (
-              <tr key={m.id} style={{ borderBottom: '1px solid #eee' }}>
-                <td style={{ padding: 8 }}>
+              <tr key={m.id}>
+                <td>
                   {m.full_name || '(bez imena)'}
-                  {m.is_manual && <span style={{ fontSize: 11, color: '#888', marginLeft: 6 }}>bez naloga</span>}
+                  {m.is_manual && <span className="badge" style={{ marginLeft: 6 }}>bez naloga</span>}
                 </td>
-                <td style={{ padding: 8, fontSize: 13 }}>
+                <td className="small">
                   {m.phone || '—'}
-                  {m.email && <div style={{ color: '#666' }}>{m.email}</div>}
+                  {m.email && <div className="muted">{m.email}</div>}
                 </td>
-                <td style={{ padding: 8, fontSize: 13 }}>
+                <td className="small">
                   {m.monthly.length === 0 && '—'}
                   {m.monthly.map(r => (
                     <div key={r.period}>
@@ -253,22 +252,22 @@ export default function MembersManager() {
                     </div>
                   ))}
                 </td>
-                <td style={{ padding: 8 }}>
+                <td>
                   {m.is_manual && (
                     <>
-                      <button onClick={() => createInvite(m)}>Link za registraciju</button>
-                      <button onClick={() => removeMember(m)} style={{ color: '#a33', marginLeft: 6 }}>Ukloni</button>
+                      <button className="btn-ghost btn-sm" onClick={() => createInvite(m)}>Link za registraciju</button>
+                      <button className="btn-danger btn-sm" onClick={() => removeMember(m)}>Ukloni</button>
                     </>
                   )}
                 </td>
               </tr>
             ))}
           </tbody>
-        </table>
+        </table></div>
       )}
 
-      <h3 style={{ fontSize: 16 }}>Dodaj u redovnu grupu</h3>
-      <form onSubmit={handleAddMonthly} style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
+      <h3>Dodaj u redovnu grupu</h3>
+      <form onSubmit={handleAddMonthly} className="row mb">
         <select value={monthlyForm.member_id} onChange={e => setMonthlyForm({ ...monthlyForm, member_id: e.target.value })} required>
           <option value="">— član —</option>
           {members.map(m => <option key={m.id} value={m.id}>{m.full_name}</option>)}
@@ -281,10 +280,10 @@ export default function MembersManager() {
           onChange={e => setMonthlyForm({ ...monthlyForm, month: e.target.value })} />
         <button type="submit" disabled={monthlySaving}>Dodaj</button>
       </form>
-      {monthlyMessage && <p style={{ fontSize: 13, margin: '0 0 24px' }}>{monthlyMessage}</p>}
+      {monthlyMessage && <p className="small">{monthlyMessage}</p>}
 
-      <h3 style={{ fontSize: 16, marginTop: 32 }}>Individualni časovi</h3>
-      <form onSubmit={handleAddDropin} style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
+      <h3 className="mt">Individualni časovi</h3>
+      <form onSubmit={handleAddDropin} className="row mb">
         <select value={dropinForm.member_id} onChange={e => setDropinForm({ ...dropinForm, member_id: e.target.value })} required>
           <option value="">— član —</option>
           {members.map(m => <option key={m.id} value={m.id}>{m.full_name}</option>)}
@@ -300,44 +299,44 @@ export default function MembersManager() {
         </select>
         <button type="submit" disabled={dropinSaving}>Dodaj (i preko kapaciteta ako treba)</button>
       </form>
-      {dropinError && <p style={{ color: 'crimson' }}>{dropinError}</p>}
+      {dropinError && <p className="error">{dropinError}</p>}
 
-      {dropinRows.length === 0 && <p style={{ fontSize: 13, color: '#666' }}>Nema još individualnih prijava.</p>}
+      {dropinRows.length === 0 && <p className="small muted">Nema još individualnih prijava.</p>}
       {dropinRows.length > 0 && (
-        <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: 32 }}>
+        <div className="scroll-x"><table>
           <thead>
-            <tr style={{ textAlign: 'left', borderBottom: '1px solid #ddd' }}>
-              <th style={{ padding: 8 }}>Član</th>
-              <th style={{ padding: 8 }}>Grupa</th>
-              <th style={{ padding: 8 }}>Datum</th>
-              <th style={{ padding: 8 }}>Iznos</th>
-              <th style={{ padding: 8 }}>Status</th>
-              <th style={{ padding: 8 }}></th>
+            <tr>
+              <th>Član</th>
+              <th>Grupa</th>
+              <th>Datum</th>
+              <th>Iznos</th>
+              <th>Status</th>
+              <th></th>
             </tr>
           </thead>
           <tbody>
             {dropinRows.map(r => (
-              <tr key={r.id} style={{ borderBottom: '1px solid #eee' }}>
-                <td style={{ padding: 8 }}>{r.profiles?.full_name || '—'}{r.added_by_admin && ' (dodala vlasnica)'}</td>
-                <td style={{ padding: 8 }}>{r.groups?.name || '—'}</td>
-                <td style={{ padding: 8 }}>{r.session_date}</td>
-                <td style={{ padding: 8 }}>{r.amount} RSD</td>
-                <td style={{ padding: 8 }}>
-                  <button onClick={() => toggleDropinPaid(r)}>
+              <tr key={r.id}>
+                <td>{r.profiles?.full_name || '—'}{r.added_by_admin && ' (dodala vlasnica)'}</td>
+                <td>{r.groups?.name || '—'}</td>
+                <td>{r.session_date}</td>
+                <td>{r.amount} RSD</td>
+                <td>
+                  <button className={r.status === 'paid' ? 'btn-sm' : 'btn-ghost btn-sm'} onClick={() => toggleDropinPaid(r)}>
                     {r.status === 'paid' ? '✓ Plaćeno' : 'Potvrdi uplatu'}
                   </button>
                 </td>
-                <td style={{ padding: 8 }}>
-                  <button onClick={() => removeDropin(r)} style={{ color: '#a33' }}>Ukloni</button>
+                <td>
+                  <button className="btn-danger btn-sm" onClick={() => removeDropin(r)}>Ukloni</button>
                 </td>
               </tr>
             ))}
           </tbody>
-        </table>
+        </table></div>
       )}
 
-      <h3 style={{ fontSize: 16 }}>Dodaj na događaj / radionicu</h3>
-      <form onSubmit={handleAddEventSignup} style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+      <h3>Dodaj na događaj / radionicu</h3>
+      <form onSubmit={handleAddEventSignup} className="row">
         <select value={eventForm.member_id} onChange={e => setEventForm({ ...eventForm, member_id: e.target.value })} required>
           <option value="">— član —</option>
           {members.map(m => <option key={m.id} value={m.id}>{m.full_name}</option>)}
@@ -348,7 +347,7 @@ export default function MembersManager() {
         </select>
         <button type="submit" disabled={eventSaving}>Dodaj</button>
       </form>
-      {eventMessage && <p style={{ fontSize: 13, marginTop: 8 }}>{eventMessage}</p>}
+      {eventMessage && <p className="small">{eventMessage}</p>}
     </div>
   )
 }

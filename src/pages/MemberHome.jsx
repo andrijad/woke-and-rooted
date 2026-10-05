@@ -6,10 +6,13 @@ import EventsCard from './member/EventsCard'
 export default function MemberHome() {
   const { profile, logout } = useAuth()
   return (
-    <div style={{ maxWidth: 480, margin: '40px auto', fontFamily: 'system-ui', padding: '0 16px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h1 style={{ fontSize: 20 }}>Zdravo, {profile?.full_name || 'članice'}</h1>
-        <button onClick={logout}>Izloguj se</button>
+    <div className="shell">
+      <header className="topbar">
+        <img className="logo" src="/brand/logo-brown.svg" alt="Woke & Rooted" />
+        <button className="btn-ghost btn-sm" onClick={logout}>Izloguj se</button>
+      </header>
+      <div className="greeting">
+        <h1>Zdravo, {profile?.full_name || 'članice'}</h1>
       </div>
       <SignupCard />
       <DropinCard />

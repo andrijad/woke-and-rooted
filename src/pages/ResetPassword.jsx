@@ -38,21 +38,21 @@ export default function ResetPassword() {
   }
 
   return (
-    <div style={{ maxWidth: 320, margin: '80px auto', fontFamily: 'system-ui' }}>
-      <h1 style={{ fontSize: 20 }}>Nova lozinka</h1>
+    <div className="auth">
+      <img className="logo" src="/brand/logo-yellow.svg" alt="Woke & Rooted" />
+      <div className="auth-card">
+      <h1>Nova lozinka</h1>
 
-      {done && <p style={{ color: 'green' }}>✓ Lozinka je promenjena. Prijavljena si.</p>}
+      {done && <p className="success">✓ Lozinka je promenjena. Prijavljena si.</p>}
 
       {!done && ready && (
         <form onSubmit={handleSubmit}>
-          <input type="password" placeholder="Nova lozinka" value={password}
-            onChange={e => setPassword(e.target.value)}
-            style={{ display: 'block', width: '100%', margin: '8px 0', padding: 8, boxSizing: 'border-box' }} />
-          <input type="password" placeholder="Ponovi lozinku" value={repeat}
-            onChange={e => setRepeat(e.target.value)}
-            style={{ display: 'block', width: '100%', margin: '8px 0', padding: 8, boxSizing: 'border-box' }} />
-          {error && <p style={{ color: 'crimson' }}>{error}</p>}
-          <button type="submit" disabled={saving} style={{ padding: '8px 16px' }}>Sačuvaj lozinku</button>
+          <input className="field" type="password" placeholder="Nova lozinka" autoComplete="new-password" value={password}
+            onChange={e => setPassword(e.target.value)} />
+          <input className="field" type="password" placeholder="Ponovi lozinku" autoComplete="new-password" value={repeat}
+            onChange={e => setRepeat(e.target.value)} />
+          {error && <p className="error">{error}</p>}
+          <button type="submit" disabled={saving}>Sačuvaj lozinku</button>
         </form>
       )}
 
@@ -63,6 +63,7 @@ export default function ResetPassword() {
           Link nije ispravan ili je istekao. <Link to="/forgot-password">Pošalji novi link</Link>.
         </p>
       )}
+      </div>
     </div>
   )
 }

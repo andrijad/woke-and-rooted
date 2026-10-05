@@ -8,6 +8,15 @@ const INVALID_TEXT = {
   expired: 'Ovaj link je istekao.'
 }
 
+function Frame({ children }) {
+  return (
+    <div className="auth">
+      <img className="logo" src="/brand/logo-yellow.svg" alt="Woke & Rooted" />
+      <div className="auth-card">{children}</div>
+    </div>
+  )
+}
+
 export default function Register() {
   const [params] = useSearchParams()
   const token = params.get('token')
@@ -65,49 +74,46 @@ export default function Register() {
     setSaving(false)
   }
 
-  const box = { maxWidth: 320, margin: '80px auto', fontFamily: 'system-ui' }
-  const input = { display: 'block', width: '100%', margin: '8px 0', padding: 8, boxSizing: 'border-box' }
-
-  if (status === 'checking') return <div style={box}><p>Proveravam link...</p></div>
+  if (status === 'checking') return <Frame><p>Proveravam link...</p></Frame>
 
   if (status !== 'ok') {
     return (
-      <div style={box}>
-        <h1 style={{ fontSize: 20 }}>Registracija</h1>
+      <Frame>
+        <h1>Registracija</h1>
         <p>{INVALID_TEXT[status] || INVALID_TEXT.invalid} Zatraži novi link od studija.</p>
-        <p style={{ fontSize: 14 }}><Link to="/login">Prijava</Link></p>
-      </div>
+        <p className="auth-links"><Link to="/login">Prijava</Link></p>
+      </Frame>
     )
   }
 
   if (checkEmail) {
     return (
-      <div style={box}>
-        <h1 style={{ fontSize: 20 }}>Proveri email</h1>
+      <Frame>
+        <h1>Proveri email</h1>
         <p>Poslali smo ti mejl za potvrdu adrese. Klikni na link u njemu, pa se prijavi.</p>
-        <p style={{ fontSize: 14 }}><Link to="/login">Prijava</Link></p>
-      </div>
+        <p className="auth-links"><Link to="/login">Prijava</Link></p>
+      </Frame>
     )
   }
 
   return (
-    <div style={box}>
-      <h1 style={{ fontSize: 20 }}>Joga studio — registracija</h1>
+    <Frame>
+      <h1>Registracija</h1>
       <form onSubmit={handleSubmit}>
         <input placeholder="Ime i prezime" required value={form.full_name}
-          onChange={e => setForm({ ...form, full_name: e.target.value })} style={input} />
+          onChange={e => setForm({ ...form, full_name: e.target.value })} className="field" />
         <input type="email" placeholder="Email" required value={form.email}
-          onChange={e => setForm({ ...form, email: e.target.value })} style={input} />
+          onChange={e => setForm({ ...form, email: e.target.value })} className="field" />
         <input placeholder="Telefon (opciono)" value={form.phone}
-          onChange={e => setForm({ ...form, phone: e.target.value })} style={input} />
+          onChange={e => setForm({ ...form, phone: e.target.value })} className="field" />
         <input type="password" placeholder="Lozinka (najmanje 8 karaktera)" required value={form.password}
-          onChange={e => setForm({ ...form, password: e.target.value })} style={input} />
-        {error && <p style={{ color: 'crimson' }}>{error}</p>}
-        <button type="submit" disabled={saving} style={{ padding: '8px 16px' }}>
+          onChange={e => setForm({ ...form, password: e.target.value })} className="field" />
+        {error && <p className="error">{error}</p>}
+        <button type="submit" disabled={saving}>
           {saving ? 'Registrujem...' : 'Registruj se'}
         </button>
       </form>
-      <p style={{ marginTop: 16, fontSize: 14 }}>Već imaš nalog? <Link to="/login">Prijava</Link></p>
-    </div>
+      <p className="auth-links">Već imaš nalog? <Link to="/login">Prijava</Link></p>
+    </Frame>
   )
 }

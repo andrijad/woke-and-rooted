@@ -43,10 +43,10 @@ Aplikacija za studio joge (vlasnica = admin; članovi = korisnici). Vite + React
 - Radi se na **grani + pull request**, `main` ostaje stabilan. Pre PR-a: `npm run build`.
 - **Migracije se ne pokreću automatski.** Novu SQL migraciju dodati u `supabase/migrations/` sa sledećim brojem, a vlasnik je ručno pokreće u Supabase SQL editoru. U PR opisu naglasiti da migraciju treba pokrenuti i kojim redosledom.
 - Ne menjati postojeće migracije koje su već pokrenute; praviti novu.
-- Stil je trenutno inline (`style={{…}}`) — logika i izgled su razdvojeni da se UI kasnije lako restilizuje. Završni dizajn se radi tek kad funkcionalnost bude gotova, prema referenci koju vlasnik da.
+- **Dizajn**: stilovi su u `src/index.css` (CSS promenljive + klase: `.shell .topbar .card .signup(.is-due/.is-paid) .offer .notice .empty .tabs/.tab .badge .field .row .auth .auth-card`; dugmad: podrazumevano mahovina, `.btn-ghost`, `.btn-danger`, `.btn-sm`, `.btn-on-moss`). Nove ekrane graditi klasama, bez `style={{…}}` osim sitnih razmaka. Boje brenda: mahovina `#4a5c36`, lan `#f2e8cc`, glina `#a05032`, kora `#5a4632`, slama `#bf9840` (plaćeno = mahovina, čeka uplatu = glina). Fontovi (self-hosted, `@fontsource-variable`): Antonio za naslove, Figtree za tekst. Logotipi i ikonice su u `public/brand/` (logo-brown/yellow/terracotta/green, symbol, yoga, cocoa, nature*).
 - Tajne (service role ključ, SMTP) nikad u repo ni u frontend kod.
 
 ## Odloženo / na redu
 - Obaveštenja (email + PWA push; Viber kao kopirani tekst).
 - Podešavanje sopstvenog SMTP-a (bez toga reset lozinke radi samo za članove Supabase tima).
-- Završni UI dizajn; opciono Supabase Realtime.
+- Opciono Supabase Realtime.

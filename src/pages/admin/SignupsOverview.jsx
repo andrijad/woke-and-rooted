@@ -167,7 +167,7 @@ export default function SignupsOverview() {
     await loadEvents()
   }
 
-  if (loading) return <p>Učitavanje...</p>
+  if (loading) return <p className="muted">Učitavanje...</p>
 
   const thisMonth = currentMonthStart()
 
@@ -185,12 +185,12 @@ export default function SignupsOverview() {
 
   return (
     <div>
-      <h3 style={{ fontSize: 16 }}>Redovna joga</h3>
-      <label style={{ display: 'block', fontSize: 13, marginBottom: 12 }}>
+      <div className="section-title"><img src="/brand/yoga.svg" alt="" /><h3>Redovna joga</h3></div>
+      <label className="check small mb">
         <input type="checkbox" checked={showArchivedGroups} onChange={e => setShowArchivedGroups(e.target.checked)} /> Prikaži arhivirane grupe
       </label>
 
-      {visibleGroups.length === 0 && <p style={{ fontSize: 13, color: '#666' }}>Nema grupa.</p>}
+      {visibleGroups.length === 0 && <p className="small muted">Nema grupa.</p>}
 
       {visibleGroups.map(g => {
         const periods = periodsByGroup[g.id] || []
@@ -215,50 +215,50 @@ export default function SignupsOverview() {
         const olderPeriods = Object.keys(byPeriod).filter(per => !mainSet.has(per)).sort().reverse()
 
         const renderTable = list => (
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <div className="scroll-x"><table>
             <tbody>
               {list.map(r => (
-                <tr key={r.id} style={{ borderBottom: '1px solid #eee' }}>
-                  <td style={{ padding: 8 }}>{r.profiles?.full_name || '—'}</td>
-                  <td style={{ padding: 8 }}>{r.amount} RSD</td>
-                  <td style={{ padding: 8 }}>
-                    <button onClick={() => toggleMonthlyPaid(r)}>
+                <tr key={r.id}>
+                  <td>{r.profiles?.full_name || '—'}</td>
+                  <td>{r.amount} RSD</td>
+                  <td>
+                    <button className={r.status === 'paid' ? 'btn-sm' : 'btn-ghost btn-sm'} onClick={() => toggleMonthlyPaid(r)}>
                       {r.status === 'paid' ? '✓ Plaćeno' : 'Potvrdi uplatu'}
                     </button>
                   </td>
-                  <td style={{ padding: 8 }}>
-                    <button onClick={() => removeMonthly(r)} style={{ color: '#a33' }}>Ukloni</button>
+                  <td>
+                    <button className="btn-danger btn-sm" onClick={() => removeMonthly(r)}>Ukloni</button>
                   </td>
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></div>
         )
 
         return (
-          <div key={g.id} style={{ border: '1px solid #ddd', borderRadius: 12, padding: 16, marginBottom: 12 }}>
-            <h4 style={{ margin: '0 0 8px' }}>
+          <div key={g.id} className="card">
+            <h4>
               {g.name}
-              {g.archived && <span style={{ fontSize: 12, color: '#999', marginLeft: 8 }}>arhivirano</span>}
+              {g.archived && <span className="badge" style={{ marginLeft: 8 }}>arhivirano</span>}
             </h4>
 
             {/* Prijave: koji su meseci otvoreni */}
-            <div style={{ background: '#f7f7f7', borderRadius: 8, padding: 10, marginBottom: 12 }}>
-              <p style={{ margin: '0 0 6px', fontSize: 13, fontWeight: 600 }}>Prijave</p>
+            <div className="notice mb">
+              <p className="small strong" style={{ margin: '0 0 6px' }}>Prijave</p>
               {openPeriods.length === 0 && (
-                <p style={{ margin: 0, fontSize: 13, color: '#a33' }}>Trenutno nijedan mesec nije otvoren za prijave.</p>
+                <p className="small error" style={{ margin: 0 }}>Trenutno nijedan mesec nije otvoren za prijave.</p>
               )}
               {openPeriods.map(p => {
                 const st = stats(p.period)
                 return (
-                  <div key={p.id} style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginBottom: 4 }}>
-                    <span style={{ color: 'green', fontWeight: 600, fontSize: 13 }}>● Otvoreno: {monthLabel(p.period)}</span>
-                    <span style={{ fontSize: 12, color: '#555' }}>{capText(st.total)} prijavljeno</span>
-                    <button onClick={() => closeGroupPeriod(p)} disabled={busyGroupId === g.id}>Zatvori prijave</button>
+                  <div key={p.id} className="row" style={{ marginBottom: 6 }}>
+                    <span className="badge moss">● Otvoreno: {monthLabel(p.period)}</span>
+                    <span className="xs muted">{capText(st.total)} prijavljeno</span>
+                    <button className="btn-ghost btn-sm" onClick={() => closeGroupPeriod(p)} disabled={busyGroupId === g.id}>Zatvori prijave</button>
                   </div>
                 )
               })}
-              <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 8, flexWrap: 'wrap' }}>
+              <div className="row mt">
                 <input type="month" value={monthInputByGroup[g.id] || ''}
                   onChange={e => setMonthInputByGroup({ ...monthInputByGroup, [g.id]: e.target.value })} />
                 <button onClick={() => openGroupPeriod(g.id)} disabled={busyGroupId === g.id}>Otvori prijave</button>
@@ -271,17 +271,17 @@ export default function SignupsOverview() {
               const isCurrent = per === thisMonth
               const isOpen = openPeriods.some(p => p.period === per)
               return (
-                <div key={per} style={{ marginBottom: 12 }}>
-                  <p style={{ margin: '0 0 4px', fontSize: 14, fontWeight: 600 }}>
+                <div key={per} className="mb">
+                  <p className="strong" style={{ margin: '0 0 2px' }}>
                     {monthLabel(per)}
-                    {isCurrent && <span style={{ fontSize: 12, color: '#555', fontWeight: 400 }}> · tekući mesec</span>}
-                    {isOpen && <span style={{ fontSize: 12, color: 'green', fontWeight: 400 }}> · otvoreno za prijave</span>}
+                    {isCurrent && <span className="xs muted"> · tekući mesec</span>}
+                    {isOpen && <span className="xs success"> · otvoreno za prijave</span>}
                   </p>
-                  <p style={{ margin: '0 0 4px', fontSize: 12, color: '#555' }}>
+                  <p className="xs muted" style={{ margin: '0 0 4px' }}>
                     {capText(st.total)} prijavljeno · {st.paid} plaćeno
                   </p>
                   {st.total === 0
-                    ? <p style={{ fontSize: 13, color: '#666', margin: 0 }}>Još nema prijava.</p>
+                    ? <p className="small muted" style={{ margin: 0 }}>Još nema prijava.</p>
                     : renderTable(st.list)}
                 </div>
               )
@@ -289,13 +289,13 @@ export default function SignupsOverview() {
 
             {olderPeriods.length > 0 && (
               <details>
-                <summary style={{ fontSize: 13, cursor: 'pointer' }}>Ranije ({olderPeriods.length})</summary>
+                <summary>Ranije ({olderPeriods.length})</summary>
                 {olderPeriods.map(per => {
                   const st = stats(per)
                   return (
-                    <div key={per} style={{ marginTop: 8 }}>
-                      <p style={{ margin: '0 0 4px', fontSize: 13, fontWeight: 600 }}>
-                        {monthLabel(per)} <span style={{ fontWeight: 400, color: '#555' }}>· {st.total} prijavljeno · {st.paid} plaćeno</span>
+                    <div key={per} className="mt">
+                      <p className="small strong" style={{ margin: '0 0 4px' }}>
+                        {monthLabel(per)} <span className="muted" style={{ fontWeight: 400 }}>· {st.total} prijavljeno · {st.paid} plaćeno</span>
                       </p>
                       {renderTable(st.list)}
                     </div>
@@ -307,46 +307,46 @@ export default function SignupsOverview() {
         )
       })}
 
-      <h3 style={{ fontSize: 16, marginTop: 32 }}>Događaji</h3>
-      <label style={{ display: 'block', fontSize: 13, marginBottom: 12 }}>
+      <div className="section-title section"><img src="/brand/cocoa.svg" alt="" /><h3>Događaji</h3></div>
+      <label className="check small mb">
         <input type="checkbox" checked={showArchivedEvents} onChange={e => setShowArchivedEvents(e.target.checked)} /> Prikaži arhivirane
       </label>
 
-      {visibleEvents.length === 0 && <p style={{ fontSize: 13, color: '#666' }}>Nema događaja.</p>}
+      {visibleEvents.length === 0 && <p className="small muted">Nema događaja.</p>}
 
       {visibleEvents.map(ev => {
         const signups = eventSignups[ev.id] || []
         return (
-          <div key={ev.id} style={{ border: '1px solid #ddd', borderRadius: 12, padding: 16, marginBottom: 12 }}>
-            <h4 style={{ margin: '0 0 4px' }}>
+          <div key={ev.id} className="card">
+            <h4 style={{ marginBottom: 4 }}>
               {ev.name}
-              {!ev.published && <span style={{ fontSize: 12, color: '#a67', marginLeft: 8 }}>nacrt</span>}
-              {ev.archived && <span style={{ fontSize: 12, color: '#999', marginLeft: 8 }}>arhivirano</span>}
+              {!ev.published && <span className="badge clay" style={{ marginLeft: 8 }}>nacrt</span>}
+              {ev.archived && <span className="badge" style={{ marginLeft: 8 }}>arhivirano</span>}
             </h4>
-            <p style={{ margin: '0 0 8px', fontSize: 13, color: '#555' }}>
+            <p className="small muted">
               {formatEventDates(ev)} · {ev.price} RSD
               {ev.capacity != null && ` · ${signups.length}/${ev.capacity} prijavljeno`}
             </p>
-            {signups.length === 0 && <p style={{ fontSize: 13, color: '#666' }}>Još nema prijava.</p>}
+            {signups.length === 0 && <p className="small muted">Još nema prijava.</p>}
             {signups.length > 0 && (
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <div className="scroll-x"><table>
                 <tbody>
                   {signups.map(s => (
-                    <tr key={s.id} style={{ borderBottom: '1px solid #eee' }}>
-                      <td style={{ padding: 8 }}>{s.profiles?.full_name || '—'}{s.added_by_admin && ' (dodala vlasnica)'}</td>
-                      <td style={{ padding: 8 }}>{s.amount} RSD</td>
-                      <td style={{ padding: 8 }}>
-                        <button onClick={() => toggleEventPaid(s)}>
+                    <tr key={s.id}>
+                      <td>{s.profiles?.full_name || '—'}{s.added_by_admin && ' (dodala vlasnica)'}</td>
+                      <td>{s.amount} RSD</td>
+                      <td>
+                        <button className={s.status === 'paid' ? 'btn-sm' : 'btn-ghost btn-sm'} onClick={() => toggleEventPaid(s)}>
                           {s.status === 'paid' ? '✓ Plaćeno' : 'Potvrdi uplatu'}
                         </button>
                       </td>
-                      <td style={{ padding: 8 }}>
-                        <button onClick={() => removeEventSignup(s)} style={{ color: '#a33' }}>Ukloni</button>
+                      <td>
+                        <button className="btn-danger btn-sm" onClick={() => removeEventSignup(s)}>Ukloni</button>
                       </td>
                     </tr>
                   ))}
                 </tbody>
-              </table>
+              </table></div>
             )}
           </div>
         )
