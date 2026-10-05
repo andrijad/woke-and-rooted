@@ -24,6 +24,12 @@ Aplikacija za studio joge (vlasnica = admin; članovi = korisnici). Vite + React
 - `group_memberships` / `admin_set_member_group` — **zastarelo** za mesečne prijave (članovi sami biraju). Ne oslanjati se na to.
 - Statusi uplate: `due` → `paid`; potvrđuje samo vlasnica.
 
+## Registracija
+- Nalog se pravi samo preko pozivnog linka `/register?token=…` (tabela `invites`, važi 7 dana, jednokratno). Proveru radi trigger `handle_new_user`, ne frontend.
+- Pozivnica može biti vezana za ručno dodatog člana (`invites.member_id`) — tada se njegova evidencija povezuje sa novim nalogom (id se prebacuje, FK imaju ON UPDATE CASCADE).
+- Nalozi se ne prave iz Supabase dashboarda. Novi admin: registracija preko linka, pa `update profiles set is_admin = true where email = '…'`.
+- Potvrda mejla zahteva sopstveni SMTP u Supabase-u.
+
 ## Pravila koja se lako pogrešno urade
 - **RLS**: članovi vide samo svoje prijave. Za ukupan broj prijava (kapacitet) koristiti SECURITY DEFINER RPC: `count_monthly_signups`, `count_event_signups`.
 - **Delete pod RLS-om ne vraća grešku, samo 0 redova.** Uvek `.delete()....select()` i proveriti dužinu rezultata.
@@ -43,6 +49,4 @@ Aplikacija za studio joge (vlasnica = admin; članovi = korisnici). Vite + React
 ## Odloženo / na redu
 - Obaveštenja (email + PWA push; Viber kao kopirani tekst).
 - Podešavanje sopstvenog SMTP-a (bez toga reset lozinke radi samo za članove Supabase tima).
-- Povezivanje ručno dodatog člana sa kasnije registrovanim nalogom (admin akcija, ne automatski).
-- Registracija članova preko linka/pozivnice.
 - Završni UI dizajn; opciono Supabase Realtime.

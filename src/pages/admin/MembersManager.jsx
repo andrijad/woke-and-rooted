@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabaseClient'
+import { useAuth } from '../../context/AuthContext'
 import { makeDropinRefCode, makeEventRefCode, makeRefCode } from '../../lib/ips'
 import { computeUpcomingSessions, formatSessionLabel } from '../../lib/schedule'
 import { formatEventDates } from '../../lib/events'
@@ -18,6 +19,10 @@ function monthLabel(period) {
 }
 
 export default function MembersManager() {
+  const { profile } = useAuth()
+  const [inviteLink, setInviteLink] = useState('')
+  const [inviteFor, setInviteFor] = useState('')
+  const [copied, setCopied] = useState(false)
   const [members, setMembers] = useState([])
   const [groups, setGroups] = useState([])
   const [events, setEvents] = useState([])
@@ -63,6 +68,23 @@ export default function MembersManager() {
     }
     setMembers((profilesData || []).map(p => ({ ...p, monthly: byMember[p.id] || [] })))
     setLoading(false)
+  }
+
+  async function createInvite(member) {
+    const { data, error } = await supabase
+      .from('invites')
+      .insert({ created_by: profile.id, member_id: member ? member.id : null })
+      .select('token')
+      .single()
+    if (error) { alert('Greška: ' + error.message); return }
+    setInviteLink(`${window.location.origin}/register?token=${data.token}`)
+    setInviteFor(member ? member.full_name : '')
+    setCopied(false)
+  }
+
+  async function copyInvite() {
+    await navigator.clipboard.writeText(inviteLink)
+    setCopied(true)
   }
 
   async function removeMember(m) {
@@ -188,6 +210,19 @@ export default function MembersManager() {
     <div>
       <h3 style={{ fontSize: 16 }}>Članovi</h3>
       <AddMemberForm onAdded={load} />
+      <div style={{ marginBottom: 16 }}>
+        <button onClick={() => createInvite(null)}>Novi link za registraciju</button>
+        {inviteLink && (
+          <div style={{ border: '1px solid #ddd', borderRadius: 12, padding: 12, marginTop: 8 }}>
+            <p style={{ margin: '0 0 6px', fontSize: 13 }}>
+              Link{inviteFor ? ` za ${inviteFor}` : ''} važi 7 dana i može da se iskoristi jednom.
+            </p>
+            <input readOnly value={inviteLink} onFocus={e => e.target.select()}
+              style={{ width: '100%', padding: 8, boxSizing: 'border-box', fontSize: 12 }} />
+            <button onClick={copyInvite} style={{ marginTop: 6 }}>{copied ? '✓ Kopirano' : 'Kopiraj link'}</button>
+          </div>
+        )}
+      </div>
       {members.length === 0 && <p>Nema još registrovanih članova.</p>}
       {members.length > 0 && (
         <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: 32 }}>
@@ -219,7 +254,12 @@ export default function MembersManager() {
                   ))}
                 </td>
                 <td style={{ padding: 8 }}>
-                  {m.is_manual && <button onClick={() => removeMember(m)} style={{ color: '#a33' }}>Ukloni</button>}
+                  {m.is_manual && (
+                    <>
+                      <button onClick={() => createInvite(m)}>Link za registraciju</button>
+                      <button onClick={() => removeMember(m)} style={{ color: '#a33', marginLeft: 6 }}>Ukloni</button>
+                    </>
+                  )}
                 </td>
               </tr>
             ))}
