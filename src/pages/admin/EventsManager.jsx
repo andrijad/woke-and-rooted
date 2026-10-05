@@ -5,7 +5,7 @@ import RichTextEditor from '../../components/RichTextEditor'
 import { formatEventDates } from '../../lib/events'
 
 const BLANK = {
-  name: '', description_short: '', description_long: '',
+  name: '', description_short: '', description_html: '',
   price: '', capacity: '', published: true, archived: false,
   mode: 'single',
   date_single: '', date_from: '', date_to: '',
@@ -38,7 +38,7 @@ export default function EventsManager() {
     setForm({
       name: ev.name,
       description_short: ev.description_short || '',
-      description_long: ev.description_long || '',
+      description_html: ev.description_html || '',
       price: ev.price,
       capacity: ev.capacity ?? '',
       published: ev.published,
@@ -63,7 +63,7 @@ export default function EventsManager() {
     const payload = {
       name: form.name,
       description_short: form.description_short,
-      description_long: form.description_long,
+      description_html: form.description_html,
       price: Number(form.price),
       capacity: form.capacity === '' ? null : Number(form.capacity),
       published: form.published,
@@ -178,8 +178,8 @@ export default function EventsManager() {
 
         <p style={{ fontSize: 13, fontWeight: 700, marginTop: 12 }}>Dug opis (opciono)</p>
         <RichTextEditor
-          value={form.description_long}
-          onChange={html => setForm({ ...form, description_long: html })}
+          value={form.description_html}
+          onChange={html => setForm({ ...form, description_html: html })}
         />
 
         {error && <p style={{ color: 'crimson' }}>{error}</p>}
