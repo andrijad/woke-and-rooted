@@ -6,28 +6,27 @@ export function buildIpsQrString({ accountNumber, recipientName, amount, purpose
     `N:${recipientName}`,
     `I:RSD${amountFormatted}`,
     `SF:${purposeCode}`,
-    `RO:${refCode}`
+    `RO:${REF_MODEL}${refCode}`
   ].join('|')
 }
 
-export function makeRefCode(period, memberId) {
-  const yy = period.slice(2, 4)
-  const mm = period.slice(5, 7)
-  const suffix = memberId.replace(/-/g, '').slice(-4).toUpperCase()
-  return `${yy}${mm}-${suffix}`
+// Poziv na broj je samo od cifara, model 99 (bez kontrolnih cifara).
+// Brojevi člana i događaja dolaze iz baze (profiles.member_no, events.event_no).
+export const REF_MODEL = '99'
+
+const pad = (n, len) => String(n).padStart(len, '0')
+
+// mesečna prijava: 1 + GGMM + broj člana
+export function makeRefCode(period, memberNo) {
+  return `1${period.slice(2, 4)}${period.slice(5, 7)}${pad(memberNo, 4)}`
 }
 
-export function makeDropinRefCode(sessionDate, memberId, groupId) {
-  const yy = sessionDate.slice(2, 4)
-  const mm = sessionDate.slice(5, 7)
-  const dd = sessionDate.slice(8, 10)
-  const memberSuffix = memberId.replace(/-/g, '').slice(-3).toUpperCase()
-  const groupSuffix = groupId.replace(/-/g, '').slice(-2).toUpperCase()
-  return `${yy}${mm}${dd}-${memberSuffix}${groupSuffix}`
+// individualni čas: 2 + GGMMDD + broj člana
+export function makeDropinRefCode(sessionDate, memberNo) {
+  return `2${sessionDate.slice(2, 4)}${sessionDate.slice(5, 7)}${sessionDate.slice(8, 10)}${pad(memberNo, 4)}`
 }
 
-export function makeEventRefCode(eventId, memberId) {
-  const eventSuffix = eventId.replace(/-/g, '').slice(-4).toUpperCase()
-  const memberSuffix = memberId.replace(/-/g, '').slice(-3).toUpperCase()
-  return `DOG-${eventSuffix}${memberSuffix}`
+// događaj: 3 + broj događaja + broj člana
+export function makeEventRefCode(eventNo, memberNo) {
+  return `3${pad(eventNo, 3)}${pad(memberNo, 4)}`
 }

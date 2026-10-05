@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import QRCode from 'qrcode'
-import { buildIpsQrString } from '../../lib/ips'
+import { buildIpsQrString, REF_MODEL } from '../../lib/ips'
 
 function CopyButton({ value }) {
   const [done, setDone] = useState(false)
@@ -46,7 +46,7 @@ export default function PaymentDetails({ settings, amount, refCode }) {
     { label: 'Račun', value: settings.account_number, copy: true },
     { label: 'Iznos', value: `${amount} RSD`, copy: String(amount) },
     { label: 'Šifra plaćanja', value: settings.purpose_code },
-    { label: 'Model', value: '99' },
+    { label: 'Model', value: REF_MODEL },
     { label: 'Poziv na broj', value: refCode, copy: true }
   ]
 

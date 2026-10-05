@@ -73,7 +73,7 @@ export default function DropinCard() {
     setSigningUp(true)
     setError('')
     const group = groups.find(g => g.id === selectedGroup)
-    const refCode = makeDropinRefCode(selectedDate, profile.id, selectedGroup)
+    const refCode = makeDropinRefCode(selectedDate, profile.member_no)
 
     const { error: err } = await supabase.from('dropin_signups').insert({
       group_id: selectedGroup,

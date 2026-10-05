@@ -56,7 +56,7 @@ export default function EventsCard() {
 
   async function handleSignup(ev) {
     setSigningUp(ev.id)
-    const refCode = makeEventRefCode(ev.id, profile.id)
+    const refCode = makeEventRefCode(ev.event_no, profile.member_no)
     const { error } = await supabase.from('event_signups').insert({
       event_id: ev.id,
       member_id: profile.id,

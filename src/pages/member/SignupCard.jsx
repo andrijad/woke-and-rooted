@@ -102,7 +102,7 @@ export default function SignupCard() {
       member_id: profile.id,
       period,
       amount: group.monthly_price,
-      ref_code: makeRefCode(period, profile.id),
+      ref_code: makeRefCode(period, profile.member_no),
       status: 'due'
     })
     if (err) {

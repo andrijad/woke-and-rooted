@@ -110,7 +110,7 @@ export default function MembersManager() {
       member_id: monthlyForm.member_id,
       period,
       amount: group.monthly_price,
-      ref_code: makeRefCode(period, monthlyForm.member_id),
+      ref_code: makeRefCode(period, members.find(m => m.id === monthlyForm.member_id)?.member_no),
       status: 'due'
     })
     if (error) {
@@ -140,7 +140,7 @@ export default function MembersManager() {
     if (!dropinForm.member_id || !dropinForm.group_id || !dropinForm.session_date) return
     setDropinSaving(true)
     const group = groups.find(g => g.id === dropinForm.group_id)
-    const refCode = makeDropinRefCode(dropinForm.session_date, dropinForm.member_id, dropinForm.group_id)
+    const refCode = makeDropinRefCode(dropinForm.session_date, members.find(m => m.id === dropinForm.member_id)?.member_no)
     const { error } = await supabase.from('dropin_signups').insert({
       group_id: dropinForm.group_id,
       member_id: dropinForm.member_id,
@@ -184,7 +184,7 @@ export default function MembersManager() {
     if (!eventForm.member_id || !eventForm.event_id) return
     setEventSaving(true)
     const ev = events.find(x => x.id === eventForm.event_id)
-    const refCode = makeEventRefCode(eventForm.event_id, eventForm.member_id)
+    const refCode = makeEventRefCode(ev.event_no, members.find(m => m.id === eventForm.member_id)?.member_no)
     const { error } = await supabase.from('event_signups').insert({
       event_id: eventForm.event_id,
       member_id: eventForm.member_id,
