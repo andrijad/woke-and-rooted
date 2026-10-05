@@ -18,25 +18,24 @@ export default function Login() {
   }
 
   return (
-    <div style={{ maxWidth: 320, margin: '80px auto', fontFamily: 'system-ui' }}>
-      <h1 style={{ fontSize: 20 }}>Joga studio — prijava</h1>
-      <form onSubmit={handleSubmit}>
-        <input
-          type="email" placeholder="Email" value={email}
-          onChange={e => setEmail(e.target.value)}
-          style={{ display: 'block', width: '100%', margin: '8px 0', padding: 8, boxSizing: 'border-box' }}
-        />
-        <input
-          type="password" placeholder="Lozinka" value={password}
-          onChange={e => setPassword(e.target.value)}
-          style={{ display: 'block', width: '100%', margin: '8px 0', padding: 8, boxSizing: 'border-box' }}
-        />
-        {error && <p style={{ color: 'crimson' }}>{error}</p>}
-        <button type="submit" style={{ padding: '8px 16px' }}>Prijavi se</button>
-      </form>
-      <p style={{ marginTop: 16, fontSize: 14 }}>
-        <Link to="/forgot-password">Zaboravljena lozinka?</Link>
-      </p>
+    <div className="auth">
+      <img className="logo" src="/brand/logo-yellow.svg" alt="Woke & Rooted" />
+      <div className="auth-card">
+        <h1>Prijava</h1>
+        <form onSubmit={handleSubmit}>
+          <input
+            className="field" type="email" placeholder="Email" autoComplete="email" value={email}
+            onChange={e => setEmail(e.target.value)}
+          />
+          <input
+            className="field" type="password" placeholder="Lozinka" autoComplete="current-password" value={password}
+            onChange={e => setPassword(e.target.value)}
+          />
+          {error && <p className="error">{error}</p>}
+          <button type="submit">Prijavi se</button>
+        </form>
+        <p className="auth-links"><Link to="/forgot-password">Zaboravljena lozinka?</Link></p>
+      </div>
     </div>
   )
 }

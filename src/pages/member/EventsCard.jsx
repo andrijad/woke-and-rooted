@@ -97,49 +97,56 @@ export default function EventsCard() {
     await load(true)
   }
 
-  if (loading) return <p>Učitavanje...</p>
+  if (loading) return <p className="muted">Učitavanje...</p>
   if (events.length === 0) return null
 
   return (
-    <div style={{ marginTop: 16 }}>
-      <h3 style={{ fontSize: 15 }}>Posebni događaji</h3>
+    <section className="section">
+      <div className="section-title">
+        <img src="/brand/cocoa.svg" alt="" />
+        <h3>Posebni događaji</h3>
+      </div>
       {events.map(ev => {
         const mine = mineByEvent[ev.id]
         const count = countByEvent[ev.id] || 0
         const isFull = ev.capacity != null && count >= ev.capacity && !mine
+        const cls = mine ? (mine.status === 'paid' ? 'signup is-paid' : 'signup is-due') : 'offer'
 
         return (
-          <div key={ev.id} style={{ border: '1px solid #ddd', borderRadius: 12, padding: 16, marginTop: 12 }}>
-            <h4 style={{ margin: '0 0 4px' }}>{ev.name}</h4>
-            <p style={{ margin: '0 0 8px', fontSize: 13, color: '#555' }}>
+          <div key={ev.id} className={cls}>
+            <h4>{ev.name}</h4>
+            <p className={mine ? 'when' : 'small muted'} style={{ margin: '0 0 8px' }}>
               {formatEventDates(ev)} · {ev.price} RSD
             </p>
-            {ev.description_short && <p style={{ fontSize: 14 }}>{ev.description_short}</p>}
+            {ev.description_short && <p className="small">{ev.description_short}</p>}
 
             {!mine && !isFull && (
               <button onClick={() => handleSignup(ev)} disabled={signingUp === ev.id}>Prijavi se</button>
             )}
 
-            {!mine && isFull && (
-              <p style={{ color: '#a33', fontWeight: 600 }}>Grupa je popunjena</p>
-            )}
+            {!mine && isFull && <span className="badge clay">Grupa je popunjena</span>}
 
             {mine && mine.status === 'paid' && (
-              <p style={{ color: 'green', fontWeight: 700 }}>✓ Prijavljena si i uplata je potvrđena</p>
+              <p className="strong" style={{ margin: 0 }}>✓ Prijavljena si i uplata je potvrđena</p>
             )}
 
             {mine && mine.status === 'due' && (
               <div>
-                <p>Prijavljena si. Čeka se uplata. Poziv na broj: {mine.ref_code}</p>
-                {qrByEvent[ev.id] && <img src={qrByEvent[ev.id]} alt="IPS QR kod" width={220} height={220} />}
+                <p style={{ margin: '0 0 8px' }}>
+                  Prijavljena si. Čeka se uplata.<br />
+                  <span className="small muted">Poziv na broj: {mine.ref_code}</span>
+                </p>
+                {qrByEvent[ev.id] && (
+                  <div className="qr"><img src={qrByEvent[ev.id]} alt="IPS QR kod" width={200} height={200} /></div>
+                )}
                 <div>
-                  <button onClick={() => handleCancel(ev)} style={{ marginTop: 8 }}>Poništi prijavu</button>
+                  <button className="btn-ghost btn-sm" onClick={() => handleCancel(ev)}>Poništi prijavu</button>
                 </div>
               </div>
             )}
           </div>
         )
       })}
-    </div>
+    </section>
   )
 }

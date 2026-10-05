@@ -21,8 +21,10 @@ export default function ForgotPassword() {
   }
 
   return (
-    <div style={{ maxWidth: 320, margin: '80px auto', fontFamily: 'system-ui' }}>
-      <h1 style={{ fontSize: 20 }}>Zaboravljena lozinka</h1>
+    <div className="auth">
+      <img className="logo" src="/brand/logo-yellow.svg" alt="Woke & Rooted" />
+      <div className="auth-card">
+      <h1>Zaboravljena lozinka</h1>
       {sent ? (
         <p>
           Ako nalog sa tim emailom postoji, poslali smo link za postavljanje nove lozinke.
@@ -30,19 +32,19 @@ export default function ForgotPassword() {
         </p>
       ) : (
         <form onSubmit={handleSubmit}>
-          <p style={{ fontSize: 14 }}>Unesi email naloga i poslaćemo ti link za novu lozinku.</p>
+          <p className="small">Unesi email naloga i poslaćemo ti link za novu lozinku.</p>
           <input
-            type="email" placeholder="Email" required value={email}
+            className="field" type="email" placeholder="Email" required value={email}
             onChange={e => setEmail(e.target.value)}
-            style={{ display: 'block', width: '100%', margin: '8px 0', padding: 8, boxSizing: 'border-box' }}
           />
-          {error && <p style={{ color: 'crimson' }}>{error}</p>}
-          <button type="submit" disabled={sending} style={{ padding: '8px 16px' }}>
+          {error && <p className="error">{error}</p>}
+          <button type="submit" disabled={sending}>
             {sending ? 'Šaljem...' : 'Pošalji link'}
           </button>
         </form>
       )}
-      <p style={{ marginTop: 16, fontSize: 14 }}><Link to="/login">Nazad na prijavu</Link></p>
+      <p className="auth-links"><Link to="/login">Nazad na prijavu</Link></p>
+      </div>
     </div>
   )
 }

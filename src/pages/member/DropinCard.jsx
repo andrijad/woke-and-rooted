@@ -125,57 +125,53 @@ export default function DropinCard() {
   }
 
   return (
-    <div style={{ border: '1px solid #ddd', borderRadius: 12, padding: 16, marginTop: 16 }}>
-      <h3 style={{ marginTop: 0 }}>Individualni čas</h3>
+    <section className="section">
+      <div className="section-title">
+        <img src="/brand/nature-terracotta.svg" alt="" />
+        <h3>Individualni čas</h3>
+      </div>
 
-      {mine.length > 0 && (
-        <div style={{ marginBottom: 16 }}>
-          {mine.map(r => (
-            <div key={r.id} style={{ borderBottom: '1px solid #eee', paddingBottom: 12, marginBottom: 12 }}>
-              <p style={{ margin: '0 0 4px', fontWeight: 600 }}>
-                {r.groups?.name} · {formatDate(r.session_date)}
+      {mine.map(r => (
+        <div key={r.id} className={`signup ${r.status === 'paid' ? 'is-paid' : 'is-due'}`}>
+          <p className="when">{formatDate(r.session_date)}</p>
+          <h4>{r.groups?.name}</h4>
+          {r.status === 'paid' && (
+            <p className="strong" style={{ margin: 0 }}>✓ Prijavljena si i uplata je potvrđena</p>
+          )}
+          {r.status === 'due' && (
+            <div>
+              <p style={{ margin: '0 0 8px' }}>
+                Prijavljena si. Čeka se uplata: <span className="strong">{r.amount} RSD</span>.<br />
+                <span className="small muted">Poziv na broj: {r.ref_code}</span>
               </p>
-              {r.status === 'paid' && (
-                <p style={{ color: 'green', fontWeight: 700, margin: 0 }}>
-                  ✓ Prijavljena si i uplata je potvrđena
-                </p>
+              {qrById[r.id] && (
+                <div className="qr"><img src={qrById[r.id]} alt="IPS QR kod" width={200} height={200} /></div>
               )}
-              {r.status === 'due' && (
-                <div>
-                  <p style={{ margin: '0 0 8px' }}>
-                    Prijavljena si. Čeka se uplata ({r.amount} RSD). Poziv na broj: {r.ref_code}
-                  </p>
-                  {qrById[r.id] && <img src={qrById[r.id]} alt="IPS QR kod" width={220} height={220} />}
-                  <div>
-                    <button onClick={() => handleCancel(r)} style={{ marginTop: 8 }}>Poništi prijavu</button>
-                  </div>
-                </div>
-              )}
+              <div>
+                <button className="btn-ghost btn-sm" onClick={() => handleCancel(r)}>Poništi prijavu</button>
+              </div>
             </div>
-          ))}
+          )}
         </div>
-      )}
+      ))}
 
-      <form onSubmit={handleSubmit}>
-        <select value={selectedGroup} onChange={e => handleGroupChange(e.target.value)} required
-          style={{ display: 'block', width: '100%', margin: '8px 0', padding: 8 }}>
+      <form className="offer" onSubmit={handleSubmit}>
+        <p className="strong" style={{ margin: '0 0 4px' }}>Prijavi se na pojedinačni čas</p>
+        <select className="field" value={selectedGroup} onChange={e => handleGroupChange(e.target.value)} required>
           <option value="">— izaberi grupu —</option>
           {groups.map(g => (
             <option key={g.id} value={g.id}>{g.name} · {g.dropin_price} RSD</option>
           ))}
         </select>
 
-        {selectedGroup && loadingSessions && <p>Učitavanje termina...</p>}
+        {selectedGroup && loadingSessions && <p className="muted small">Učitavanje termina...</p>}
 
         {selectedGroup && !loadingSessions && sessions.length === 0 && (
-          <p style={{ fontSize: 13, color: '#a33' }}>
-            Nema slobodnih termina za ovu grupu.
-          </p>
+          <p className="small error">Nema slobodnih termina za ovu grupu.</p>
         )}
 
         {sessions.length > 0 && (
-          <select value={selectedDate} onChange={e => setSelectedDate(e.target.value)} required
-            style={{ display: 'block', width: '100%', margin: '8px 0', padding: 8 }}>
+          <select className="field" value={selectedDate} onChange={e => setSelectedDate(e.target.value)} required>
             <option value="">— izaberi termin —</option>
             {sessions.map(s => (
               <option key={s.date} value={s.date}>{formatSessionLabel(s)}</option>
@@ -185,7 +181,7 @@ export default function DropinCard() {
 
         <button type="submit" disabled={signingUp || !selectedDate}>Prijavi se</button>
       </form>
-      {error && <p style={{ color: 'crimson' }}>{error}</p>}
-    </div>
+      {error && <p className="error">{error}</p>}
+    </section>
   )
 }

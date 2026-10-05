@@ -138,36 +138,40 @@ export default function SignupCard() {
     await load(true)
   }
 
-  if (loading) return <p>Učitavanje...</p>
+  if (loading) return <p className="muted">Učitavanje...</p>
 
   const monthStart = currentMonthStart()
 
   return (
-    <div style={{ border: '1px solid #ddd', borderRadius: 12, padding: 16, marginTop: 16 }}>
-      <h3 style={{ marginTop: 0 }}>Redovna joga</h3>
+    <section className="section">
+      <div className="section-title">
+        <img src="/brand/yoga.svg" alt="" />
+        <h3>Redovna joga</h3>
+      </div>
 
       {mySignups.map(s => (
-        <div key={s.id} style={{ borderBottom: '1px solid #eee', paddingBottom: 12, marginBottom: 12 }}>
-          <p style={{ margin: '0 0 2px', fontSize: 12, color: '#666' }}>
+        <div key={s.id} className={`signup ${s.status === 'paid' ? 'is-paid' : 'is-due'}`}>
+          <p className="when">
             {s.period === monthStart ? 'Ovaj mesec' : 'Sledeći mesec'} · {monthLabel(s.period)}
           </p>
-          <p style={{ margin: '0 0 4px', fontWeight: 600 }}>
-            {s.groups?.name}
-            {scheduleByGroup[s.group_id] && ` · ${scheduleByGroup[s.group_id].join(', ')}`}
-          </p>
+          <h4>{s.groups?.name}</h4>
+          {scheduleByGroup[s.group_id] && (
+            <p className="small" style={{ margin: '0 0 8px' }}>{scheduleByGroup[s.group_id].join(', ')}</p>
+          )}
           {s.status === 'paid' && (
-            <p style={{ color: 'green', fontWeight: 700, margin: 0 }}>
-              ✓ Prijavljena si i uplata je potvrđena
-            </p>
+            <p className="strong" style={{ margin: 0 }}>✓ Prijavljena si i uplata je potvrđena</p>
           )}
           {s.status === 'due' && (
             <div>
               <p style={{ margin: '0 0 8px' }}>
-                Prijavljena si. Čeka se uplata ({s.amount} RSD). Poziv na broj: {s.ref_code}
+                Prijavljena si. Čeka se uplata: <span className="strong">{s.amount} RSD</span>.<br />
+                <span className="small muted">Poziv na broj: {s.ref_code}</span>
               </p>
-              {qrById[s.id] && <img src={qrById[s.id]} alt="IPS QR kod" width={220} height={220} />}
+              {qrById[s.id] && (
+                <div className="qr"><img src={qrById[s.id]} alt="IPS QR kod" width={200} height={200} /></div>
+              )}
               <div>
-                <button onClick={() => handleCancel(s)} style={{ marginTop: 8 }}>Poništi prijavu</button>
+                <button className="btn-ghost btn-sm" onClick={() => handleCancel(s)}>Poništi prijavu</button>
               </div>
             </div>
           )}
@@ -175,24 +179,24 @@ export default function SignupCard() {
       ))}
 
       {openOffers.map(({ period, groups }) => (
-        <div key={period} style={{ marginBottom: 12 }}>
-          <p style={{ margin: '0 0 8px', fontWeight: 700 }}>
+        <div key={period} className="mb">
+          <p className="strong" style={{ margin: '0 0 8px' }}>
             Otvorene prijave za {monthLabel(period)}
           </p>
           {groups.map(({ group, full }) => (
-            <div key={group.id} style={{ border: '1px solid #eee', borderRadius: 8, padding: 12, marginBottom: 8 }}>
-              <p style={{ margin: '0 0 2px', fontWeight: 600 }}>{group.name}</p>
+            <div key={group.id} className="offer">
+              <h4>{group.name}</h4>
               {scheduleByGroup[group.id] && (
-                <p style={{ margin: '0 0 2px', fontSize: 13, color: '#555' }}>
+                <p className="small muted" style={{ margin: '0 0 4px' }}>
                   {scheduleByGroup[group.id].join(', ')}
                 </p>
               )}
               {group.description_short && (
-                <p style={{ margin: '0 0 4px', fontSize: 13 }}>{group.description_short}</p>
+                <p className="small" style={{ margin: '0 0 6px' }}>{group.description_short}</p>
               )}
-              <p style={{ margin: '0 0 8px', fontSize: 13 }}>{group.monthly_price} RSD</p>
+              <p className="price" style={{ margin: '0 0 10px' }}>{group.monthly_price} RSD</p>
               {full
-                ? <p style={{ margin: 0, color: '#a33', fontWeight: 600 }}>Grupa je popunjena</p>
+                ? <span className="badge clay">Grupa je popunjena</span>
                 : <button onClick={() => handleSignup(group, period)}
                     disabled={busyKey === `${group.id}:${period}`}>Prijavi se</button>}
             </div>
@@ -200,13 +204,14 @@ export default function SignupCard() {
         </div>
       ))}
 
-      {error && <p style={{ color: 'crimson' }}>{error}</p>}
+      {error && <p className="error">{error}</p>}
 
       {mySignups.length === 0 && openOffers.length === 0 && (
-        <p style={{ color: '#666', margin: 0 }}>
-          Trenutno nema otvorenih prijava za redovnu jogu. Obavestićemo te kad se otvore.
-        </p>
+        <div className="empty">
+          <img src="/brand/nature.svg" alt="" />
+          <p>Trenutno nema otvorenih prijava za redovnu jogu. Obavestićemo te kad se otvore.</p>
+        </div>
       )}
-    </div>
+    </section>
   )
 }

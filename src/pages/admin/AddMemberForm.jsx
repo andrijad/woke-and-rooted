@@ -28,25 +28,22 @@ export default function AddMemberForm({ onAdded }) {
     setSaving(false)
   }
 
-  if (!open) return <div style={{ marginBottom: 16 }}><button onClick={() => setOpen(true)}>+ Dodaj člana</button></div>
+  if (!open) return <div className="mb"><button onClick={() => setOpen(true)}>+ Dodaj člana</button></div>
 
   return (
-    <form onSubmit={handleSubmit} style={{ border: '1px solid #ddd', borderRadius: 12, padding: 16, marginBottom: 16 }}>
-      <p style={{ margin: '0 0 8px', fontSize: 13, color: '#555' }}>
+    <form onSubmit={handleSubmit} className="card">
+      <p className="small muted">
         Član se vodi u evidenciji i nema nalog za prijavu. Email i telefon su za tvoju upotrebu.
       </p>
-      <input placeholder="Ime i prezime" required value={form.full_name}
-        onChange={e => setForm({ ...form, full_name: e.target.value })}
-        style={{ display: 'block', width: '100%', margin: '0 0 8px', padding: 8, boxSizing: 'border-box' }} />
-      <input type="email" placeholder="Email (opciono)" value={form.email}
-        onChange={e => setForm({ ...form, email: e.target.value })}
-        style={{ display: 'block', width: '100%', margin: '0 0 8px', padding: 8, boxSizing: 'border-box' }} />
-      <input placeholder="Telefon (opciono)" value={form.phone}
-        onChange={e => setForm({ ...form, phone: e.target.value })}
-        style={{ display: 'block', width: '100%', margin: '0 0 8px', padding: 8, boxSizing: 'border-box' }} />
+      <input className="field" placeholder="Ime i prezime" required value={form.full_name}
+        onChange={e => setForm({ ...form, full_name: e.target.value })} />
+      <input className="field" type="email" placeholder="Email (opciono)" value={form.email}
+        onChange={e => setForm({ ...form, email: e.target.value })} />
+      <input className="field" placeholder="Telefon (opciono)" value={form.phone}
+        onChange={e => setForm({ ...form, phone: e.target.value })} />
       <button type="submit" disabled={saving}>{saving ? 'Čuvam...' : 'Sačuvaj'}</button>
-      <button type="button" onClick={() => setOpen(false)} style={{ marginLeft: 8 }}>Otkaži</button>
-      {error && <p style={{ color: 'crimson' }}>{error}</p>}
+      <button type="button" className="btn-ghost" onClick={() => setOpen(false)} style={{ marginLeft: 8 }}>Otkaži</button>
+      {error && <p className="error">{error}</p>}
     </form>
   )
 }

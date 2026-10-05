@@ -90,11 +90,11 @@ export default function EventsManager() {
     setSaving(false)
   }
 
-  if (loading) return <p>Učitavanje...</p>
+  if (loading) return <p className="muted">Učitavanje...</p>
 
   return (
     <div>
-      <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
+      <div className="row mb">
         <select value={selectedId || ''} onChange={e => selectEvent(e.target.value || null)}>
           <option value="">— Novi događaj —</option>
           {events.map(ev => (
@@ -108,24 +108,20 @@ export default function EventsManager() {
       </div>
 
       <form onSubmit={handleSave}>
-        <input placeholder="Naziv događaja" value={form.name}
-          onChange={e => setForm({ ...form, name: e.target.value })} required
-          style={{ display: 'block', width: '100%', margin: '6px 0', padding: 8 }} />
+        <input className="field" placeholder="Naziv događaja" value={form.name}
+          onChange={e => setForm({ ...form, name: e.target.value })} required />
 
-        <input placeholder="Kratak opis (prikazuje se u listi)" value={form.description_short}
-          onChange={e => setForm({ ...form, description_short: e.target.value })} required
-          style={{ display: 'block', width: '100%', margin: '6px 0', padding: 8 }} />
+        <input className="field" placeholder="Kratak opis (prikazuje se u listi)" value={form.description_short}
+          onChange={e => setForm({ ...form, description_short: e.target.value })} required />
 
-        <div style={{ display: 'flex', gap: 8 }}>
-          <input type="number" placeholder="Cena (RSD)" value={form.price}
-            onChange={e => setForm({ ...form, price: e.target.value })} required
-            style={{ flex: 1, padding: 8 }} />
-          <input type="number" placeholder="Kapacitet (opciono)" value={form.capacity}
-            onChange={e => setForm({ ...form, capacity: e.target.value })}
-            style={{ flex: 1, padding: 8 }} />
+        <div className="row nowrap">
+          <input className="grow" type="number" placeholder="Cena (RSD)" value={form.price}
+            onChange={e => setForm({ ...form, price: e.target.value })} required />
+          <input className="grow" type="number" placeholder="Kapacitet (opciono)" value={form.capacity}
+            onChange={e => setForm({ ...form, capacity: e.target.value })} />
         </div>
 
-        <div style={{ display: 'flex', gap: 16, margin: '10px 0', fontSize: 14 }}>
+        <div className="row mb" style={{ gap: 20 }}>
           <label>
             <input type="radio" checked={form.mode === 'single'}
               onChange={() => setForm({ ...form, mode: 'single' })} /> Jednodnevni
@@ -137,59 +133,54 @@ export default function EventsManager() {
         </div>
 
         {form.mode === 'single' ? (
-          <input type="date" value={form.date_single}
-            onChange={e => setForm({ ...form, date_single: e.target.value })} required
-            style={{ display: 'block', padding: 8, marginBottom: 8 }} />
+          <input className="grow" type="date" value={form.date_single}
+            onChange={e => setForm({ ...form, date_single: e.target.value })} required />
         ) : (
-          <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
-            <input type="date" value={form.date_from}
-              onChange={e => setForm({ ...form, date_from: e.target.value })} required
-              style={{ flex: 1, padding: 8 }} />
-            <input type="date" value={form.date_to}
-              onChange={e => setForm({ ...form, date_to: e.target.value })} required
-              style={{ flex: 1, padding: 8 }} />
+          <div className="row nowrap mb">
+            <input className="grow" type="date" value={form.date_from}
+              onChange={e => setForm({ ...form, date_from: e.target.value })} required />
+            <input className="grow" type="date" value={form.date_to}
+              onChange={e => setForm({ ...form, date_to: e.target.value })} required />
           </div>
         )}
 
-        <label style={{ display: 'block', fontSize: 14, marginBottom: 4 }}>
+        <label className="check">
           <input type="checkbox" checked={form.has_time}
             onChange={e => setForm({ ...form, has_time: e.target.checked })} /> Ima određenu satnicu
         </label>
         {form.has_time && (
-          <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
-            <input type="time" value={form.start_time}
-              onChange={e => setForm({ ...form, start_time: e.target.value })}
-              style={{ flex: 1, padding: 8 }} />
-            <input type="time" value={form.end_time}
-              onChange={e => setForm({ ...form, end_time: e.target.value })}
-              style={{ flex: 1, padding: 8 }} />
+          <div className="row nowrap mb">
+            <input className="grow" type="time" value={form.start_time}
+              onChange={e => setForm({ ...form, start_time: e.target.value })} />
+            <input className="grow" type="time" value={form.end_time}
+              onChange={e => setForm({ ...form, end_time: e.target.value })} />
           </div>
         )}
 
-        <label style={{ display: 'block', margin: '10px 0', fontSize: 14 }}>
+        <label className="check">
           <input type="checkbox" checked={form.published}
             onChange={e => setForm({ ...form, published: e.target.checked })} /> Objavljeno (vidljivo članovima)
         </label>
 
-        <label style={{ display: 'block', margin: '10px 0', fontSize: 14 }}>
+        <label className="check">
           <input type="checkbox" checked={form.archived}
             onChange={e => setForm({ ...form, archived: e.target.checked })} /> Arhivirano (sakriveno od članova, ti i dalje vidiš)
         </label>
 
-        <p style={{ fontSize: 13, fontWeight: 700, marginTop: 12 }}>Dug opis (opciono)</p>
+        <p className="small strong mt">Dug opis (opciono)</p>
         <RichTextEditor
           value={form.description_html}
           onChange={html => setForm({ ...form, description_html: html })}
         />
 
-        {error && <p style={{ color: 'crimson' }}>{error}</p>}
+        {error && <p className="error">{error}</p>}
 
-        <button type="submit" disabled={saving} style={{ marginTop: 12 }}>
+        <button type="submit" className="mt" disabled={saving}>
           {selectedId ? 'Sačuvaj izmene' : 'Napravi događaj'}
         </button>
       </form>
 
-      <p style={{ fontSize: 13, color: '#666', marginTop: 20 }}>
+      <p className="small muted mt">
         Spiskovi prijavljenih članova i statusi uplata za ovaj događaj su u tabu „Termini i uplate".
       </p>
     </div>
