@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react'
-import QRCode from 'qrcode'
+import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../../lib/supabaseClient'
 import { useAuth } from '../../context/AuthContext'
-import { buildIpsQrString, makeEventRefCode } from '../../lib/ips'
+import { sanitizeHtml, hasText } from '../../lib/sanitize'
+import PaymentDetails from './PaymentDetails'
 import { formatEventDates } from '../../lib/events'
 import { useRefreshOnFocus } from '../../lib/useRefreshOnFocus'
 
@@ -11,7 +11,8 @@ export default function EventsCard() {
   const [events, setEvents] = useState([])
   const [mineByEvent, setMineByEvent] = useState({})
   const [countByEvent, setCountByEvent] = useState({})
-  const [qrByEvent, setQrByEvent] = useState({})
+  const [settings, setSettings] = useState(null)
+  const [openEventId, setOpenEventId] = useState(null)
   const [signingUp, setSigningUp] = useState(null)
   const [loading, setLoading] = useState(true)
 
@@ -47,35 +48,17 @@ export default function EventsCard() {
       }))
       setCountByEvent(counts)
 
-      const qrMap = {}
-      if (settingsData) {
-        for (const ev of list) {
-          const myRow = mine[ev.id]
-          if (myRow && myRow.status === 'due') {
-            const str = buildIpsQrString({
-              accountNumber: settingsData.account_number,
-              recipientName: settingsData.recipient_name,
-              amount: myRow.amount,
-              purposeCode: settingsData.purpose_code,
-              refCode: myRow.ref_code
-            })
-            qrMap[ev.id] = await QRCode.toDataURL(str, { margin: 1, width: 220 })
-          }
-        }
-      }
-      setQrByEvent(qrMap)
     }
+    setSettings(settingsData || null)
     setLoading(false)
   }
 
   async function handleSignup(ev) {
     setSigningUp(ev.id)
-    const refCode = makeEventRefCode(ev.id, profile.id)
     const { error } = await supabase.from('event_signups').insert({
       event_id: ev.id,
       member_id: profile.id,
       amount: ev.price,
-      ref_code: refCode,
       status: 'due'
     })
     if (error) alert('Greška: ' + error.message)
@@ -100,6 +83,27 @@ export default function EventsCard() {
   if (loading) return <p className="muted">Učitavanje...</p>
   if (events.length === 0) return null
 
+  const openEvent = events.find(e => e.id === openEventId) || null
+
+  function renderAction(ev, { inModal = false } = {}) {
+    const mine = mineByEvent[ev.id]
+    const count = countByEvent[ev.id] || 0
+    const isFull = ev.capacity != null && count >= ev.capacity && !mine
+    if (!mine && !isFull) {
+      return (
+        <button disabled={signingUp === ev.id}
+          onClick={async () => { await handleSignup(ev); if (inModal) setOpenEventId(null) }}>Prijavi se</button>
+      )
+    }
+    if (!mine && isFull) return <span className="badge clay">Grupa je popunjena</span>
+    if (mine.status === 'paid') {
+      return <span className="badge moss">✓ Prijavljena si, uplata potvrđena</span>
+    }
+    return inModal
+      ? <span className="badge clay">Prijavljena si — čeka se uplata</span>
+      : null
+  }
+
   return (
     <section className="section">
       <div className="section-title">
@@ -108,8 +112,6 @@ export default function EventsCard() {
       </div>
       {events.map(ev => {
         const mine = mineByEvent[ev.id]
-        const count = countByEvent[ev.id] || 0
-        const isFull = ev.capacity != null && count >= ev.capacity && !mine
         const cls = mine ? (mine.status === 'paid' ? 'signup is-paid' : 'signup is-due') : 'offer'
 
         return (
@@ -119,34 +121,60 @@ export default function EventsCard() {
               {formatEventDates(ev)} · {ev.price} RSD
             </p>
             {ev.description_short && <p className="small">{ev.description_short}</p>}
-
-            {!mine && !isFull && (
-              <button onClick={() => handleSignup(ev)} disabled={signingUp === ev.id}>Prijavi se</button>
+            {hasText(ev.description_html) && (
+              <p style={{ margin: '0 0 10px' }}>
+                <button type="button" className={mine?.status === 'paid' ? 'btn-on-moss btn-sm' : 'btn-ghost btn-sm'}
+                  onClick={() => setOpenEventId(ev.id)}>Pročitaj više</button>
+              </p>
             )}
 
-            {!mine && isFull && <span className="badge clay">Grupa je popunjena</span>}
-
-            {mine && mine.status === 'paid' && (
-              <p className="strong" style={{ margin: 0 }}>✓ Prijavljena si i uplata je potvrđena</p>
-            )}
-
-            {mine && mine.status === 'due' && (
+            {mine?.status === 'due' && (
               <div>
-                <p style={{ margin: '0 0 8px' }}>
-                  Prijavljena si. Čeka se uplata.<br />
-                  <span className="small muted">Poziv na broj: {mine.ref_code}</span>
-                </p>
-                {qrByEvent[ev.id] && (
-                  <div className="qr"><img src={qrByEvent[ev.id]} alt="IPS QR kod" width={200} height={200} /></div>
-                )}
-                <div>
-                  <button className="btn-ghost btn-sm" onClick={() => handleCancel(ev)}>Poništi prijavu</button>
-                </div>
+                <p style={{ margin: 0 }}><span className="strong">Prijavljena si — čeka se uplata.</span></p>
+                <PaymentDetails settings={settings} amount={mine.amount} refCode={mine.ref_code} />
+                <button className="btn-ghost btn-sm" onClick={() => handleCancel(ev)}>Poništi prijavu</button>
               </div>
             )}
+            {mine?.status === 'paid' && (
+              <p className="strong" style={{ margin: 0 }}>✓ Prijavljena si i uplata je potvrđena</p>
+            )}
+            {!mine && renderAction(ev)}
           </div>
         )
       })}
+
+      <EventModal event={openEvent} onClose={() => setOpenEventId(null)}
+        action={openEvent ? renderAction(openEvent, { inModal: true }) : null} />
     </section>
+  )
+}
+
+function EventModal({ event, onClose, action }) {
+  const ref = useRef(null)
+
+  useEffect(() => {
+    const d = ref.current
+    if (!d) return
+    if (event && !d.open) d.showModal()
+    if (!event && d.open) d.close()
+  }, [event])
+
+  return (
+    <dialog ref={ref} className="modal" onClose={onClose}
+      onClick={e => { if (e.target === ref.current) ref.current.close() }}>
+      {event && (
+        <>
+          <div className="modal-body">
+            <h3 style={{ marginBottom: 4 }}>{event.name}</h3>
+            <p className="small muted">{formatEventDates(event)} · {event.price} RSD</p>
+            <div className="rich" dangerouslySetInnerHTML={{ __html: sanitizeHtml(event.description_html) }} />
+          </div>
+          <div className="modal-foot">
+            {action}
+            <button type="button" className="btn-ghost" onClick={() => ref.current.close()}>Zatvori</button>
+          </div>
+        </>
+      )}
+    </dialog>
   )
 }

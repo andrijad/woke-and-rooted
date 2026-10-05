@@ -221,6 +221,7 @@ export default function SignupsOverview() {
                 <tr key={r.id}>
                   <td>{r.profiles?.full_name || '—'}</td>
                   <td>{r.amount} RSD</td>
+                  <td className="small muted">Poziv: <span className="strong">{r.ref_code}</span></td>
                   <td>
                     <button className={r.status === 'paid' ? 'btn-sm' : 'btn-ghost btn-sm'} onClick={() => toggleMonthlyPaid(r)}>
                       {r.status === 'paid' ? '✓ Plaćeno' : 'Potvrdi uplatu'}
@@ -335,6 +336,7 @@ export default function SignupsOverview() {
                     <tr key={s.id}>
                       <td>{s.profiles?.full_name || '—'}{s.added_by_admin && ' (dodala vlasnica)'}</td>
                       <td>{s.amount} RSD</td>
+                      <td className="small muted">Poziv: <span className="strong">{s.ref_code}</span></td>
                       <td>
                         <button className={s.status === 'paid' ? 'btn-sm' : 'btn-ghost btn-sm'} onClick={() => toggleEventPaid(s)}>
                           {s.status === 'paid' ? '✓ Plaćeno' : 'Potvrdi uplatu'}

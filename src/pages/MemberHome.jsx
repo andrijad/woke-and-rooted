@@ -15,8 +15,8 @@ export default function MemberHome() {
         <h1>Zdravo, {profile?.full_name || 'članice'}</h1>
       </div>
       <SignupCard />
-      <DropinCard />
       <EventsCard />
+      <DropinCard />
     </div>
   )
 }

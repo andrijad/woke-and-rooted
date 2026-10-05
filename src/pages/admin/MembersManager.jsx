@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabaseClient'
 import { useAuth } from '../../context/AuthContext'
-import { makeDropinRefCode, makeEventRefCode, makeRefCode } from '../../lib/ips'
 import { computeUpcomingSessions, formatSessionLabel } from '../../lib/schedule'
 import { formatEventDates } from '../../lib/events'
 import AddMemberForm from './AddMemberForm'
@@ -50,7 +49,7 @@ export default function MembersManager() {
         supabase.from('groups').select('*').eq('archived', false).order('name'),
         supabase.from('profiles').select('*').eq('is_admin', false).order('full_name'),
         supabase.from('monthly_signups')
-          .select('member_id, period, status, groups(name)')
+          .select('member_id, period, status, ref_code, groups(name)')
           .gte('period', monthStart())
           .order('period'),
         supabase.from('events').select('*').eq('archived', false).order('date_from', { ascending: false }),
@@ -110,7 +109,6 @@ export default function MembersManager() {
       member_id: monthlyForm.member_id,
       period,
       amount: group.monthly_price,
-      ref_code: makeRefCode(period, monthlyForm.member_id),
       status: 'due'
     })
     if (error) {
@@ -140,13 +138,11 @@ export default function MembersManager() {
     if (!dropinForm.member_id || !dropinForm.group_id || !dropinForm.session_date) return
     setDropinSaving(true)
     const group = groups.find(g => g.id === dropinForm.group_id)
-    const refCode = makeDropinRefCode(dropinForm.session_date, dropinForm.member_id, dropinForm.group_id)
     const { error } = await supabase.from('dropin_signups').insert({
       group_id: dropinForm.group_id,
       member_id: dropinForm.member_id,
       session_date: dropinForm.session_date,
       amount: group.dropin_price,
-      ref_code: refCode,
       status: 'due',
       added_by_admin: true
     })
@@ -184,12 +180,10 @@ export default function MembersManager() {
     if (!eventForm.member_id || !eventForm.event_id) return
     setEventSaving(true)
     const ev = events.find(x => x.id === eventForm.event_id)
-    const refCode = makeEventRefCode(eventForm.event_id, eventForm.member_id)
     const { error } = await supabase.from('event_signups').insert({
       event_id: eventForm.event_id,
       member_id: eventForm.member_id,
       amount: ev.price,
-      ref_code: refCode,
       status: 'due',
       added_by_admin: true
     })
@@ -248,7 +242,7 @@ export default function MembersManager() {
                   {m.monthly.length === 0 && '—'}
                   {m.monthly.map(r => (
                     <div key={r.period}>
-                      {monthLabel(r.period)}: {r.groups?.name} {r.status === 'paid' ? '✓' : '(čeka uplatu)'}
+                      {monthLabel(r.period)}: {r.groups?.name} {r.status === 'paid' ? '✓' : '(čeka uplatu)'} <span className="muted">· poziv {r.ref_code}</span>
                     </div>
                   ))}
                 </td>
@@ -310,6 +304,7 @@ export default function MembersManager() {
               <th>Grupa</th>
               <th>Datum</th>
               <th>Iznos</th>
+              <th>Poziv na broj</th>
               <th>Status</th>
               <th></th>
             </tr>
@@ -321,6 +316,7 @@ export default function MembersManager() {
                 <td>{r.groups?.name || '—'}</td>
                 <td>{r.session_date}</td>
                 <td>{r.amount} RSD</td>
+                <td className="strong">{r.ref_code}</td>
                 <td>
                   <button className={r.status === 'paid' ? 'btn-sm' : 'btn-ghost btn-sm'} onClick={() => toggleDropinPaid(r)}>
                     {r.status === 'paid' ? '✓ Plaćeno' : 'Potvrdi uplatu'}
