@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabaseClient'
 import { useAuth } from '../../context/AuthContext'
-import { makeDropinRefCode } from '../../lib/ips'
 import PaymentDetails from './PaymentDetails'
 import { computeUpcomingSessions, formatSessionLabel } from '../../lib/schedule'
 import { useRefreshOnFocus } from '../../lib/useRefreshOnFocus'
@@ -73,14 +72,12 @@ export default function DropinCard() {
     setSigningUp(true)
     setError('')
     const group = groups.find(g => g.id === selectedGroup)
-    const refCode = makeDropinRefCode(selectedDate, profile.member_no)
 
     const { error: err } = await supabase.from('dropin_signups').insert({
       group_id: selectedGroup,
       member_id: profile.id,
       session_date: selectedDate,
       amount: group.dropin_price,
-      ref_code: refCode,
       status: 'due'
     })
 

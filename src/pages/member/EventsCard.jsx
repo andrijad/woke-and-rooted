@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../../lib/supabaseClient'
 import { useAuth } from '../../context/AuthContext'
-import { makeEventRefCode } from '../../lib/ips'
 import { sanitizeHtml, hasText } from '../../lib/sanitize'
 import PaymentDetails from './PaymentDetails'
 import { formatEventDates } from '../../lib/events'
@@ -56,12 +55,10 @@ export default function EventsCard() {
 
   async function handleSignup(ev) {
     setSigningUp(ev.id)
-    const refCode = makeEventRefCode(ev.event_no, profile.member_no)
     const { error } = await supabase.from('event_signups').insert({
       event_id: ev.id,
       member_id: profile.id,
       amount: ev.price,
-      ref_code: refCode,
       status: 'due'
     })
     if (error) alert('Greška: ' + error.message)

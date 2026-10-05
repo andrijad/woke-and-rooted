@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabaseClient'
 import { useAuth } from '../../context/AuthContext'
-import { makeRefCode } from '../../lib/ips'
 import PaymentDetails from './PaymentDetails'
 import { WEEKDAY_NAMES } from '../../lib/schedule'
 import { useRefreshOnFocus } from '../../lib/useRefreshOnFocus'
@@ -102,7 +101,6 @@ export default function SignupCard() {
       member_id: profile.id,
       period,
       amount: group.monthly_price,
-      ref_code: makeRefCode(period, profile.member_no),
       status: 'due'
     })
     if (err) {
