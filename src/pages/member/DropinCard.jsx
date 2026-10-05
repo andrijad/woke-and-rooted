@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
-import QRCode from 'qrcode'
 import { supabase } from '../../lib/supabaseClient'
 import { useAuth } from '../../context/AuthContext'
-import { buildIpsQrString, makeDropinRefCode } from '../../lib/ips'
+import { makeDropinRefCode } from '../../lib/ips'
+import PaymentDetails from './PaymentDetails'
 import { computeUpcomingSessions, formatSessionLabel } from '../../lib/schedule'
 import { useRefreshOnFocus } from '../../lib/useRefreshOnFocus'
 
@@ -23,7 +23,7 @@ export default function DropinCard() {
   const { profile } = useAuth()
   const [groups, setGroups] = useState([])
   const [mine, setMine] = useState([])
-  const [qrById, setQrById] = useState({})
+  const [settings, setSettings] = useState(null)
   const [selectedGroup, setSelectedGroup] = useState('')
   const [sessions, setSessions] = useState([])
   const [selectedDate, setSelectedDate] = useState('')
@@ -48,22 +48,7 @@ export default function DropinCard() {
     const rows = mineData || []
     setMine(rows)
 
-    const qrMap = {}
-    if (settingsData) {
-      for (const r of rows) {
-        if (r.status === 'due') {
-          const str = buildIpsQrString({
-            accountNumber: settingsData.account_number,
-            recipientName: settingsData.recipient_name,
-            amount: r.amount,
-            purposeCode: settingsData.purpose_code,
-            refCode: r.ref_code
-          })
-          qrMap[r.id] = await QRCode.toDataURL(str, { margin: 1, width: 220 })
-        }
-      }
-    }
-    setQrById(qrMap)
+    setSettings(settingsData || null)
   }
 
   async function handleGroupChange(groupId) {
@@ -140,16 +125,11 @@ export default function DropinCard() {
           )}
           {r.status === 'due' && (
             <div>
-              <p style={{ margin: '0 0 8px' }}>
-                Prijavljena si. Čeka se uplata: <span className="strong">{r.amount} RSD</span>.<br />
-                <span className="small muted">Poziv na broj: {r.ref_code}</span>
+              <p style={{ margin: 0 }}>
+                <span className="strong">Prijavljena si — čeka se uplata.</span>
               </p>
-              {qrById[r.id] && (
-                <div className="qr"><img src={qrById[r.id]} alt="IPS QR kod" width={200} height={200} /></div>
-              )}
-              <div>
-                <button className="btn-ghost btn-sm" onClick={() => handleCancel(r)}>Poništi prijavu</button>
-              </div>
+              <PaymentDetails settings={settings} amount={r.amount} refCode={r.ref_code} />
+              <button className="btn-ghost btn-sm" onClick={() => handleCancel(r)}>Poništi prijavu</button>
             </div>
           )}
         </div>
