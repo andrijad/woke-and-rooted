@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 
 export default function Login() {
@@ -24,16 +24,19 @@ export default function Login() {
         <input
           type="email" placeholder="Email" value={email}
           onChange={e => setEmail(e.target.value)}
-          style={{ display: 'block', width: '100%', margin: '8px 0', padding: 8 }}
+          style={{ display: 'block', width: '100%', margin: '8px 0', padding: 8, boxSizing: 'border-box' }}
         />
         <input
           type="password" placeholder="Lozinka" value={password}
           onChange={e => setPassword(e.target.value)}
-          style={{ display: 'block', width: '100%', margin: '8px 0', padding: 8 }}
+          style={{ display: 'block', width: '100%', margin: '8px 0', padding: 8, boxSizing: 'border-box' }}
         />
-        {error && <p style={{ color: 'crimson', fontSize: 13 }}>{error}</p>}
-        <button type="submit" style={{ padding: '8px 16px' }}>Uloguj se</button>
+        {error && <p style={{ color: 'crimson' }}>{error}</p>}
+        <button type="submit" style={{ padding: '8px 16px' }}>Prijavi se</button>
       </form>
+      <p style={{ marginTop: 16, fontSize: 14 }}>
+        <Link to="/forgot-password">Zaboravljena lozinka?</Link>
+      </p>
     </div>
   )
 }

@@ -4,26 +4,26 @@ import { supabase } from '../../lib/supabaseClient'
 import { useAuth } from '../../context/AuthContext'
 import { buildIpsQrString, makeEventRefCode } from '../../lib/ips'
 import { formatEventDates } from '../../lib/events'
+import { useRefreshOnFocus } from '../../lib/useRefreshOnFocus'
 
 export default function EventsCard() {
   const { profile } = useAuth()
   const [events, setEvents] = useState([])
   const [mineByEvent, setMineByEvent] = useState({})
   const [countByEvent, setCountByEvent] = useState({})
-  const [settings, setSettings] = useState(null)
   const [qrByEvent, setQrByEvent] = useState({})
   const [signingUp, setSigningUp] = useState(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => { if (profile) load() }, [profile])
+  useRefreshOnFocus(() => { if (profile) load(true) })
 
-  async function load() {
-    setLoading(true)
+  async function load(silent = false) {
+    if (!silent) setLoading(true)
     const [{ data: eventsData }, { data: settingsData }] = await Promise.all([
       supabase.from('events').select('*').eq('published', true).eq('archived', false).order('date_from'),
       supabase.from('studio_settings').select('*').eq('id', 1).single()
     ])
-    setSettings(settingsData || null)
     const list = eventsData || []
     setEvents(list)
 
@@ -79,8 +79,22 @@ export default function EventsCard() {
       status: 'due'
     })
     if (error) alert('Greška: ' + error.message)
-    await load()
+    await load(true)
     setSigningUp(null)
+  }
+
+  async function handleCancel(ev) {
+    if (!confirm('Poništiti prijavu?')) return
+    const { data, error } = await supabase
+      .from('event_signups')
+      .delete()
+      .eq('event_id', ev.id)
+      .eq('member_id', profile.id)
+      .eq('status', 'due')
+      .select()
+    if (error) alert('Greška: ' + error.message)
+    else if (!data || data.length === 0) alert('Prijava nije poništena (možda je uplata već potvrđena ili nedostaje pravilo u bazi).')
+    await load(true)
   }
 
   if (loading) return <p>Učitavanje...</p>
@@ -111,13 +125,16 @@ export default function EventsCard() {
             )}
 
             {mine && mine.status === 'paid' && (
-              <p style={{ color: 'green', fontWeight: 700 }}>✓ Uplata potvrđena</p>
+              <p style={{ color: 'green', fontWeight: 700 }}>✓ Prijavljena si i uplata je potvrđena</p>
             )}
 
             {mine && mine.status === 'due' && (
               <div>
-                <p>Čeka se uplata. Poziv na broj: {mine.ref_code}</p>
+                <p>Prijavljena si. Čeka se uplata. Poziv na broj: {mine.ref_code}</p>
                 {qrByEvent[ev.id] && <img src={qrByEvent[ev.id]} alt="IPS QR kod" width={220} height={220} />}
+                <div>
+                  <button onClick={() => handleCancel(ev)} style={{ marginTop: 8 }}>Poništi prijavu</button>
+                </div>
               </div>
             )}
           </div>

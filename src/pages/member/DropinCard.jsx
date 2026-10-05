@@ -4,27 +4,66 @@ import { supabase } from '../../lib/supabaseClient'
 import { useAuth } from '../../context/AuthContext'
 import { buildIpsQrString, makeDropinRefCode } from '../../lib/ips'
 import { computeUpcomingSessions, formatSessionLabel } from '../../lib/schedule'
+import { useRefreshOnFocus } from '../../lib/useRefreshOnFocus'
+
+function todayLocal() {
+  const d = new Date()
+  const mm = String(d.getMonth() + 1).padStart(2, '0')
+  const dd = String(d.getDate()).padStart(2, '0')
+  return `${d.getFullYear()}-${mm}-${dd}`
+}
+
+function formatDate(dateStr) {
+  return new Date(dateStr + 'T00:00:00').toLocaleDateString('sr-Latn-RS', {
+    weekday: 'long', day: 'numeric', month: 'short'
+  })
+}
 
 export default function DropinCard() {
   const { profile } = useAuth()
   const [groups, setGroups] = useState([])
-  const [settings, setSettings] = useState(null)
+  const [mine, setMine] = useState([])
+  const [qrById, setQrById] = useState({})
   const [selectedGroup, setSelectedGroup] = useState('')
   const [sessions, setSessions] = useState([])
   const [selectedDate, setSelectedDate] = useState('')
   const [signingUp, setSigningUp] = useState(false)
-  const [result, setResult] = useState(null)
+  const [error, setError] = useState('')
   const [loadingSessions, setLoadingSessions] = useState(false)
 
   useEffect(() => { if (profile) load() }, [profile])
+  useRefreshOnFocus(() => { if (profile) load() })
 
   async function load() {
-    const [{ data: groupsData }, { data: settingsData }] = await Promise.all([
+    const [{ data: groupsData }, { data: settingsData }, { data: mineData }] = await Promise.all([
       supabase.from('groups').select('*').eq('active', true).eq('archived', false).order('name'),
-      supabase.from('studio_settings').select('*').eq('id', 1).single()
+      supabase.from('studio_settings').select('*').eq('id', 1).single(),
+      supabase.from('dropin_signups')
+        .select('*, groups(name)')
+        .eq('member_id', profile.id)
+        .gte('session_date', todayLocal())
+        .order('session_date')
     ])
     setGroups(groupsData || [])
-    setSettings(settingsData || null)
+    const rows = mineData || []
+    setMine(rows)
+
+    const qrMap = {}
+    if (settingsData) {
+      for (const r of rows) {
+        if (r.status === 'due') {
+          const str = buildIpsQrString({
+            accountNumber: settingsData.account_number,
+            recipientName: settingsData.recipient_name,
+            amount: r.amount,
+            purposeCode: settingsData.purpose_code,
+            refCode: r.ref_code
+          })
+          qrMap[r.id] = await QRCode.toDataURL(str, { margin: 1, width: 220 })
+        }
+      }
+    }
+    setQrById(qrMap)
   }
 
   async function handleGroupChange(groupId) {
@@ -47,84 +86,106 @@ export default function DropinCard() {
     e.preventDefault()
     if (!selectedGroup || !selectedDate) return
     setSigningUp(true)
-    setResult(null)
+    setError('')
     const group = groups.find(g => g.id === selectedGroup)
     const refCode = makeDropinRefCode(selectedDate, profile.id, selectedGroup)
 
-    const { data, error } = await supabase
-      .from('dropin_signups')
-      .insert({
-        group_id: selectedGroup,
-        member_id: profile.id,
-        session_date: selectedDate,
-        amount: group.dropin_price,
-        ref_code: refCode,
-        status: 'due'
-      })
-      .select()
-      .single()
+    const { error: err } = await supabase.from('dropin_signups').insert({
+      group_id: selectedGroup,
+      member_id: profile.id,
+      session_date: selectedDate,
+      amount: group.dropin_price,
+      ref_code: refCode,
+      status: 'due'
+    })
 
-    if (error) {
-      setResult({
-        error: error.message.includes('već mesečno')
+    if (err) {
+      setError(
+        err.message.includes('već mesečno')
           ? 'Već si mesečno prijavljena za ovu grupu u tom mesecu — individualni čas nije potreban.'
-          : error.message
-      })
-    } else if (settings) {
-      const str = buildIpsQrString({
-        accountNumber: settings.account_number,
-        recipientName: settings.recipient_name,
-        amount: data.amount,
-        purposeCode: settings.purpose_code,
-        refCode: data.ref_code
-      })
-      const qrUrl = await QRCode.toDataURL(str, { margin: 1, width: 220 })
-      setResult({ signup: data, qrUrl })
+          : err.code === '23505'
+            ? 'Već si prijavljena za taj termin.'
+            : 'Došlo je do greške. Pokušaj ponovo.'
+      )
+    } else {
+      setSelectedGroup('')
+      setSelectedDate('')
+      setSessions([])
+      await load()
     }
     setSigningUp(false)
+  }
+
+  async function handleCancel(row) {
+    if (!confirm('Poništiti prijavu?')) return
+    const { data, error: err } = await supabase.from('dropin_signups').delete().eq('id', row.id).select()
+    if (err) alert('Greška: ' + err.message)
+    else if (!data || data.length === 0) alert('Prijava nije poništena (možda je uplata već potvrđena ili nedostaje pravilo u bazi).')
+    await load()
   }
 
   return (
     <div style={{ border: '1px solid #ddd', borderRadius: 12, padding: 16, marginTop: 16 }}>
       <h3 style={{ marginTop: 0 }}>Individualni čas</h3>
-      {!result?.signup && (
-        <form onSubmit={handleSubmit}>
-          <select value={selectedGroup} onChange={e => handleGroupChange(e.target.value)} required
-            style={{ display: 'block', width: '100%', margin: '8px 0', padding: 8 }}>
-            <option value="">— izaberi grupu —</option>
-            {groups.map(g => (
-              <option key={g.id} value={g.id}>{g.name} · {g.dropin_price} RSD</option>
-            ))}
-          </select>
 
-          {selectedGroup && loadingSessions && <p>Učitavanje termina...</p>}
-
-          {selectedGroup && !loadingSessions && sessions.length === 0 && (
-            <p style={{ fontSize: 13, color: '#a33' }}>
-              Ova grupa još nema definisane termine.
-            </p>
-          )}
-
-          {sessions.length > 0 && (
-            <select value={selectedDate} onChange={e => setSelectedDate(e.target.value)} required
-              style={{ display: 'block', width: '100%', margin: '8px 0', padding: 8 }}>
-              <option value="">— izaberi termin —</option>
-              {sessions.map(s => (
-                <option key={s.date} value={s.date}>{formatSessionLabel(s)}</option>
-              ))}
-            </select>
-          )}
-
-          <button type="submit" disabled={signingUp || !selectedDate}>Prijavi se</button>
-        </form>
-      )}
-      {result?.error && <p style={{ color: 'crimson' }}>{result.error}</p>}
-      {result?.signup && (
-        <div>
-          <p>Poziv na broj: {result.signup.ref_code} · {result.signup.amount} RSD</p>
-          <img src={result.qrUrl} alt="IPS QR kod" width={220} height={220} />
+      {mine.length > 0 && (
+        <div style={{ marginBottom: 16 }}>
+          {mine.map(r => (
+            <div key={r.id} style={{ borderBottom: '1px solid #eee', paddingBottom: 12, marginBottom: 12 }}>
+              <p style={{ margin: '0 0 4px', fontWeight: 600 }}>
+                {r.groups?.name} · {formatDate(r.session_date)}
+              </p>
+              {r.status === 'paid' && (
+                <p style={{ color: 'green', fontWeight: 700, margin: 0 }}>
+                  ✓ Prijavljena si i uplata je potvrđena
+                </p>
+              )}
+              {r.status === 'due' && (
+                <div>
+                  <p style={{ margin: '0 0 8px' }}>
+                    Prijavljena si. Čeka se uplata ({r.amount} RSD). Poziv na broj: {r.ref_code}
+                  </p>
+                  {qrById[r.id] && <img src={qrById[r.id]} alt="IPS QR kod" width={220} height={220} />}
+                  <div>
+                    <button onClick={() => handleCancel(r)} style={{ marginTop: 8 }}>Poništi prijavu</button>
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
         </div>
       )}
+
+      <form onSubmit={handleSubmit}>
+        <select value={selectedGroup} onChange={e => handleGroupChange(e.target.value)} required
+          style={{ display: 'block', width: '100%', margin: '8px 0', padding: 8 }}>
+          <option value="">— izaberi grupu —</option>
+          {groups.map(g => (
+            <option key={g.id} value={g.id}>{g.name} · {g.dropin_price} RSD</option>
+          ))}
+        </select>
+
+        {selectedGroup && loadingSessions && <p>Učitavanje termina...</p>}
+
+        {selectedGroup && !loadingSessions && sessions.length === 0 && (
+          <p style={{ fontSize: 13, color: '#a33' }}>
+            Nema slobodnih termina za ovu grupu.
+          </p>
+        )}
+
+        {sessions.length > 0 && (
+          <select value={selectedDate} onChange={e => setSelectedDate(e.target.value)} required
+            style={{ display: 'block', width: '100%', margin: '8px 0', padding: 8 }}>
+            <option value="">— izaberi termin —</option>
+            {sessions.map(s => (
+              <option key={s.date} value={s.date}>{formatSessionLabel(s)}</option>
+            ))}
+          </select>
+        )}
+
+        <button type="submit" disabled={signingUp || !selectedDate}>Prijavi se</button>
+      </form>
+      {error && <p style={{ color: 'crimson' }}>{error}</p>}
     </div>
   )
 }

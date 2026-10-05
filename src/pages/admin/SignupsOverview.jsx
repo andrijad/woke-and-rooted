@@ -11,6 +11,16 @@ function nextMonthValue() {
   return `${yyyy}-${mm}`
 }
 
+function currentMonthStart() {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`
+}
+
+function monthLabel(period) {
+  const t = new Date(period + 'T00:00:00').toLocaleDateString('sr-Latn-RS', { month: 'long', year: 'numeric' })
+  return t.charAt(0).toUpperCase() + t.slice(1)
+}
+
 export default function SignupsOverview() {
   const { profile } = useAuth()
   const [loading, setLoading] = useState(true)
@@ -95,7 +105,7 @@ export default function SignupsOverview() {
     const period = `${monthVal}-01`
     const existing = (periodsByGroup[groupId] || []).find(p => p.period === period)
     setBusyGroupId(groupId)
-    let err = null
+    let err
     if (existing) {
       if (existing.is_open) {
         alert('Prijave za taj mesec su već otvorene.')
@@ -136,6 +146,20 @@ export default function SignupsOverview() {
     await loadGroupsAndPeriods()
   }
 
+  async function removeMonthly(row) {
+    if (!confirm(`Ukloniti prijavu za ${row.profiles?.full_name || 'ovog člana'} (${row.period})?`)) return
+    const { error } = await supabase.from('monthly_signups').delete().eq('id', row.id)
+    if (error) alert('Greška: ' + error.message)
+    await loadGroupsAndPeriods()
+  }
+
+  async function removeEventSignup(row) {
+    if (!confirm(`Ukloniti prijavu za ${row.profiles?.full_name || 'ovog člana'}?`)) return
+    const { error } = await supabase.from('event_signups').delete().eq('id', row.id)
+    if (error) alert('Greška: ' + error.message)
+    await loadEvents()
+  }
+
   async function toggleEventPaid(row) {
     const newStatus = row.status === 'paid' ? 'due' : 'paid'
     const { error } = await supabase.from('event_signups').update({ status: newStatus }).eq('id', row.id)
@@ -145,14 +169,16 @@ export default function SignupsOverview() {
 
   if (loading) return <p>Učitavanje...</p>
 
+  const thisMonth = currentMonthStart()
+
   const visibleGroups = groups
     .filter(g => showArchivedGroups || !g.archived)
     .slice()
     .sort((a, b) => {
-      const pa = periodsByGroup[a.id]?.[0]?.period || ''
-      const pb = periodsByGroup[b.id]?.[0]?.period || ''
-      if (pa === pb) return a.name.localeCompare(b.name)
-      return pa < pb ? 1 : -1 // opadajuće — najnoviji period prvi, bez perioda na kraju
+      const oa = (periodsByGroup[a.id] || []).some(p => p.is_open) ? 0 : 1
+      const ob = (periodsByGroup[b.id] || []).some(p => p.is_open) ? 0 : 1
+      if (oa !== ob) return oa - ob
+      return a.name.localeCompare(b.name)
     })
 
   const visibleEvents = events.filter(ev => showArchivedEvents || !ev.archived)
@@ -168,50 +194,114 @@ export default function SignupsOverview() {
 
       {visibleGroups.map(g => {
         const periods = periodsByGroup[g.id] || []
-        const latest = periods[0] || null
+        const openPeriods = periods.filter(p => p.is_open).sort((x, y) => (x.period < y.period ? -1 : 1))
         const rows = signupsByGroup[g.id] || []
+
+        const byPeriod = {}
+        for (const r of rows) {
+          if (!byPeriod[r.period]) byPeriod[r.period] = []
+          byPeriod[r.period].push(r)
+        }
+        const stats = period => {
+          const list = byPeriod[period] || []
+          return { list, total: list.length, paid: list.filter(r => r.status === 'paid').length }
+        }
+        const capText = total => (g.capacity != null ? `${total}/${g.capacity}` : `${total}`)
+
+        // periodi koji se prikazuju u glavnom delu: tekući + otvoreni + budući sa prijavama
+        const mainSet = new Set([thisMonth, ...openPeriods.map(p => p.period)])
+        for (const per of Object.keys(byPeriod)) if (per >= thisMonth) mainSet.add(per)
+        const mainPeriods = [...mainSet].sort().reverse()
+        const olderPeriods = Object.keys(byPeriod).filter(per => !mainSet.has(per)).sort().reverse()
+
+        const renderTable = list => (
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <tbody>
+              {list.map(r => (
+                <tr key={r.id} style={{ borderBottom: '1px solid #eee' }}>
+                  <td style={{ padding: 8 }}>{r.profiles?.full_name || '—'}</td>
+                  <td style={{ padding: 8 }}>{r.amount} RSD</td>
+                  <td style={{ padding: 8 }}>
+                    <button onClick={() => toggleMonthlyPaid(r)}>
+                      {r.status === 'paid' ? '✓ Plaćeno' : 'Potvrdi uplatu'}
+                    </button>
+                  </td>
+                  <td style={{ padding: 8 }}>
+                    <button onClick={() => removeMonthly(r)} style={{ color: '#a33' }}>Ukloni</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )
+
         return (
           <div key={g.id} style={{ border: '1px solid #ddd', borderRadius: 12, padding: 16, marginBottom: 12 }}>
-            <h4 style={{ margin: '0 0 4px' }}>
+            <h4 style={{ margin: '0 0 8px' }}>
               {g.name}
               {g.archived && <span style={{ fontSize: 12, color: '#999', marginLeft: 8 }}>arhivirano</span>}
             </h4>
 
-            <p style={{ margin: '0 0 8px', fontSize: 13 }}>
-              {latest
-                ? (latest.is_open
-                    ? <span style={{ color: 'green', fontWeight: 600 }}>Otvoreno za {latest.period}</span>
-                    : <span style={{ color: '#a33', fontWeight: 600 }}>Zatvoreno (poslednji period: {latest.period})</span>)
-                : <span style={{ color: '#666' }}>Nikad otvarano</span>}
-            </p>
-
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 12, flexWrap: 'wrap' }}>
-              <input type="month" value={monthInputByGroup[g.id] || ''}
-                onChange={e => setMonthInputByGroup({ ...monthInputByGroup, [g.id]: e.target.value })} />
-              <button onClick={() => openGroupPeriod(g.id)} disabled={busyGroupId === g.id}>Otvori prijave</button>
-              {latest && latest.is_open && (
-                <button onClick={() => closeGroupPeriod(latest)} disabled={busyGroupId === g.id}>Zatvori prijave</button>
+            {/* Prijave: koji su meseci otvoreni */}
+            <div style={{ background: '#f7f7f7', borderRadius: 8, padding: 10, marginBottom: 12 }}>
+              <p style={{ margin: '0 0 6px', fontSize: 13, fontWeight: 600 }}>Prijave</p>
+              {openPeriods.length === 0 && (
+                <p style={{ margin: 0, fontSize: 13, color: '#a33' }}>Trenutno nijedan mesec nije otvoren za prijave.</p>
               )}
+              {openPeriods.map(p => {
+                const st = stats(p.period)
+                return (
+                  <div key={p.id} style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginBottom: 4 }}>
+                    <span style={{ color: 'green', fontWeight: 600, fontSize: 13 }}>● Otvoreno: {monthLabel(p.period)}</span>
+                    <span style={{ fontSize: 12, color: '#555' }}>{capText(st.total)} prijavljeno</span>
+                    <button onClick={() => closeGroupPeriod(p)} disabled={busyGroupId === g.id}>Zatvori prijave</button>
+                  </div>
+                )
+              })}
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 8, flexWrap: 'wrap' }}>
+                <input type="month" value={monthInputByGroup[g.id] || ''}
+                  onChange={e => setMonthInputByGroup({ ...monthInputByGroup, [g.id]: e.target.value })} />
+                <button onClick={() => openGroupPeriod(g.id)} disabled={busyGroupId === g.id}>Otvori prijave</button>
+              </div>
             </div>
 
-            {rows.length === 0 && <p style={{ fontSize: 13, color: '#666' }}>Još nema prijava.</p>}
-            {rows.length > 0 && (
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <tbody>
-                  {rows.map(r => (
-                    <tr key={r.id} style={{ borderBottom: '1px solid #eee' }}>
-                      <td style={{ padding: 8 }}>{r.profiles?.full_name || '—'}</td>
-                      <td style={{ padding: 8, fontSize: 12, color: '#666' }}>{r.period}</td>
-                      <td style={{ padding: 8 }}>{r.amount} RSD</td>
-                      <td style={{ padding: 8 }}>
-                        <button onClick={() => toggleMonthlyPaid(r)}>
-                          {r.status === 'paid' ? '✓ Plaćeno' : 'Potvrdi uplatu'}
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            {/* Tekući i otvoreni meseci */}
+            {mainPeriods.map(per => {
+              const st = stats(per)
+              const isCurrent = per === thisMonth
+              const isOpen = openPeriods.some(p => p.period === per)
+              return (
+                <div key={per} style={{ marginBottom: 12 }}>
+                  <p style={{ margin: '0 0 4px', fontSize: 14, fontWeight: 600 }}>
+                    {monthLabel(per)}
+                    {isCurrent && <span style={{ fontSize: 12, color: '#555', fontWeight: 400 }}> · tekući mesec</span>}
+                    {isOpen && <span style={{ fontSize: 12, color: 'green', fontWeight: 400 }}> · otvoreno za prijave</span>}
+                  </p>
+                  <p style={{ margin: '0 0 4px', fontSize: 12, color: '#555' }}>
+                    {capText(st.total)} prijavljeno · {st.paid} plaćeno
+                  </p>
+                  {st.total === 0
+                    ? <p style={{ fontSize: 13, color: '#666', margin: 0 }}>Još nema prijava.</p>
+                    : renderTable(st.list)}
+                </div>
+              )
+            })}
+
+            {olderPeriods.length > 0 && (
+              <details>
+                <summary style={{ fontSize: 13, cursor: 'pointer' }}>Ranije ({olderPeriods.length})</summary>
+                {olderPeriods.map(per => {
+                  const st = stats(per)
+                  return (
+                    <div key={per} style={{ marginTop: 8 }}>
+                      <p style={{ margin: '0 0 4px', fontSize: 13, fontWeight: 600 }}>
+                        {monthLabel(per)} <span style={{ fontWeight: 400, color: '#555' }}>· {st.total} prijavljeno · {st.paid} plaćeno</span>
+                      </p>
+                      {renderTable(st.list)}
+                    </div>
+                  )
+                })}
+              </details>
             )}
           </div>
         )
@@ -249,6 +339,9 @@ export default function SignupsOverview() {
                         <button onClick={() => toggleEventPaid(s)}>
                           {s.status === 'paid' ? '✓ Plaćeno' : 'Potvrdi uplatu'}
                         </button>
+                      </td>
+                      <td style={{ padding: 8 }}>
+                        <button onClick={() => removeEventSignup(s)} style={{ color: '#a33' }}>Ukloni</button>
                       </td>
                     </tr>
                   ))}
