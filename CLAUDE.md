@@ -30,7 +30,7 @@ Aplikacija za studio joge (vlasnica = admin; članovi = korisnici). Vite + React
 - Dve opcije: (1) javna forma `/registracija` (`pages/Registration.jsx`; `/register` je alias, stari `?token=` linkovi rade), (2) vlasnica dodaje člana ručno (`is_manual`). Forma ima honeypot i opcioni izbor grupe (RPC `get_open_groups_for_registration`; upis u grupu radi trigger `handle_new_user` uz proveru kapaciteta i otvorenog perioda).
 - Nalog radi odmah. Mejl nije verifikovan dok se ne podesi SMTP, zato: ako se mejl poklapa sa ručnim članom, postavlja se `profiles.merge_candidate_id` i vlasnica u „Nove registracije“ potvrđuje spajanje (`admin_merge_member`) ili odbija (`admin_dismiss_merge`). Grupa se tada ne upisuje automatski.
 - Svaka nova registracija dobija oznaku **nov član** (`profiles.is_new`); vlasnica je skida u „Izmeni“, a skida se i sama kad vlasnica doda člana u grupu/događaj (trigger `clear_new_on_admin_signup`). `profiles.email_verified` se sinhronizuje sa `auth.users.email_confirmed_at` (trigger `sync_email_verified`); u listi: ✓ ako je potvrđen, crveno „nije potvrđen“ ako nije. Spajanje sa evidencijom (merge) je u redu člana.
-- Vlasnica može da **obriše** nalog bez prijava (`admin_delete_account`).
+- Brisanje člana ide u dva koraka: **Arhiviraj** (`profiles.archived`, `admin_set_member_archived`; sakriven iz liste, vidljiv preko „Prikaži arhivirane“), pa **Obriši trajno** (`admin_delete_account(p_id, p_with_signups)`; ako član ima prijave traži se dodatna potvrda i brišu se i one). Radi i za članove bez naloga.
 - Novi admin: registracija, pa `update profiles set is_admin = true where email = '…'`.
 - Potvrda mejla zahteva sopstveni SMTP u Supabase-u.
 
