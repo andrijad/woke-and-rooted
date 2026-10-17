@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { Fragment, useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabaseClient'
 import { formatEventDates } from '../../lib/events'
 import AddMemberForm from './AddMemberForm'
@@ -23,6 +23,7 @@ export default function MembersManager() {
   const [events, setEvents] = useState([])
   const [loading, setLoading] = useState(true)
   const [editingId, setEditingId] = useState(null)
+  const [addFor, setAddFor] = useState(null) // { id, kind: 'group' | 'event' }
   const [monthlyForm, setMonthlyForm] = useState({ member_id: '', group_id: '', month: monthStart().slice(0, 7) })
   const [monthlySaving, setMonthlySaving] = useState(false)
   const [monthlyMessage, setMonthlyMessage] = useState('')
@@ -67,6 +68,14 @@ export default function MembersManager() {
     await load()
   }
 
+  function openAdd(m, kind) {
+    setMonthlyMessage('')
+    setEventMessage('')
+    setMonthlyForm(f => ({ ...f, member_id: m.id, group_id: '' }))
+    setEventForm({ member_id: m.id, event_id: '' })
+    setAddFor({ id: m.id, kind })
+  }
+
   async function rpcAction(name, args, okConfirm) {
     if (okConfirm && !confirm(okConfirm)) return
     const { error } = await supabase.rpc(name, args)
@@ -97,7 +106,7 @@ export default function MembersManager() {
         : 'Greška: ' + error.message)
     } else {
       setMonthlyMessage('Dodato. Uplatu potvrđuješ u tabu „Termini i uplate".')
-      setMonthlyForm({ ...monthlyForm, member_id: '', group_id: '' })
+      setMonthlyForm({ ...monthlyForm, group_id: '' })
     }
     await load()
     setMonthlySaving(false)
@@ -124,7 +133,7 @@ export default function MembersManager() {
         : 'Greška: ' + error.message)
     } else {
       setEventMessage('Dodato. Status uplate je u tabu „Termini i uplate".')
-      setEventForm({ member_id: '', event_id: '' })
+      setEventForm({ ...eventForm, event_id: '' })
     }
     setEventSaving(false)
   }
@@ -143,7 +152,6 @@ export default function MembersManager() {
             return (
               <div key={m.id} className="small mb">
                 <strong>{ownerName(m)}</strong> · {m.email}{m.phone ? ` · ${m.phone}` : ''}
-                {m.blocked && <span className="badge" style={{ marginLeft: 6 }}>blokiran</span>}
                 {cand && (
                   <div className="notice">
                     Isti email već postoji u evidenciji: <strong>{cand.full_name}</strong>.
@@ -179,12 +187,12 @@ export default function MembersManager() {
                 </td>
               </tr>
             ) : (
-              <tr key={m.id}>
+              <Fragment key={m.id}>
+              <tr>
                 <td>
                   {ownerName(m, '(bez imena)')}
                   {m.is_manual && <span className="badge" style={{ marginLeft: 6 }}>bez naloga</span>}
-                  {m.blocked && <span className="badge" style={{ marginLeft: 6 }}>blokiran</span>}
-                </td>
+                  </td>
                 <td className="small">
                   {m.phone || '—'}
                   {m.email && <div className="muted">{m.email}</div>}
@@ -200,12 +208,10 @@ export default function MembersManager() {
                 </td>
                 <td>
                   <button className="btn-ghost btn-sm" onClick={() => setEditingId(m.id)}>Izmeni</button>
+                  <button className="btn-ghost btn-sm" onClick={() => openAdd(m, 'group')}>+ Grupa</button>
+                  <button className="btn-ghost btn-sm" onClick={() => openAdd(m, 'event')}>+ Događaj</button>
                   {!m.is_manual && (
                     <>
-                      <button className="btn-ghost btn-sm"
-                        onClick={() => rpcAction('admin_set_blocked', { p_id: m.id, p_blocked: !m.blocked })}>
-                        {m.blocked ? 'Odblokiraj' : 'Blokiraj'}
-                      </button>
                       <button className="btn-danger btn-sm"
                         onClick={() => rpcAction('admin_delete_account', { p_id: m.id },
                           `Obrisati nalog ${m.full_name}? Ovo se ne može poništiti.`)}>Obriši nalog</button>
@@ -218,40 +224,42 @@ export default function MembersManager() {
                   )}
                 </td>
               </tr>
+              {addFor?.id === m.id && (
+                <tr>
+                  <td colSpan={4}>
+                    {addFor.kind === 'group' ? (
+                      <form onSubmit={handleAddMonthly} className="row">
+                        <select value={monthlyForm.group_id} required
+                          onChange={e => setMonthlyForm({ ...monthlyForm, group_id: e.target.value })}>
+                          <option value="">— grupa —</option>
+                          {groups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
+                        </select>
+                        <input type="month" value={monthlyForm.month} required
+                          onChange={e => setMonthlyForm({ ...monthlyForm, month: e.target.value })} />
+                        <button type="submit" disabled={monthlySaving}>Dodaj u grupu</button>
+                        <button type="button" className="btn-ghost" onClick={() => setAddFor(null)}>Otkaži</button>
+                      </form>
+                    ) : (
+                      <form onSubmit={handleAddEventSignup} className="row">
+                        <select value={eventForm.event_id} required
+                          onChange={e => setEventForm({ ...eventForm, event_id: e.target.value })}>
+                          <option value="">— događaj —</option>
+                          {events.map(ev => <option key={ev.id} value={ev.id}>{ev.name} · {formatEventDates(ev)}</option>)}
+                        </select>
+                        <button type="submit" disabled={eventSaving}>Dodaj na događaj</button>
+                        <button type="button" className="btn-ghost" onClick={() => setAddFor(null)}>Otkaži</button>
+                      </form>
+                    )}
+                    {addFor.kind === 'group' && monthlyMessage && <p className="small">{monthlyMessage}</p>}
+                    {addFor.kind === 'event' && eventMessage && <p className="small">{eventMessage}</p>}
+                  </td>
+                </tr>
+              )}
+              </Fragment>
             ))}
           </tbody>
         </table></div>
       )}
-
-      <h3>Dodaj u redovnu grupu</h3>
-      <form onSubmit={handleAddMonthly} className="row mb">
-        <select value={monthlyForm.member_id} onChange={e => setMonthlyForm({ ...monthlyForm, member_id: e.target.value })} required>
-          <option value="">— član —</option>
-          {members.map(m => <option key={m.id} value={m.id}>{ownerName(m)}</option>)}
-        </select>
-        <select value={monthlyForm.group_id} onChange={e => setMonthlyForm({ ...monthlyForm, group_id: e.target.value })} required>
-          <option value="">— grupa —</option>
-          {groups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
-        </select>
-        <input type="month" value={monthlyForm.month} required
-          onChange={e => setMonthlyForm({ ...monthlyForm, month: e.target.value })} />
-        <button type="submit" disabled={monthlySaving}>Dodaj</button>
-      </form>
-      {monthlyMessage && <p className="small">{monthlyMessage}</p>}
-
-      <h3>Dodaj na događaj / radionicu</h3>
-      <form onSubmit={handleAddEventSignup} className="row">
-        <select value={eventForm.member_id} onChange={e => setEventForm({ ...eventForm, member_id: e.target.value })} required>
-          <option value="">— član —</option>
-          {members.map(m => <option key={m.id} value={m.id}>{ownerName(m)}</option>)}
-        </select>
-        <select value={eventForm.event_id} onChange={e => setEventForm({ ...eventForm, event_id: e.target.value })} required>
-          <option value="">— događaj —</option>
-          {events.map(ev => <option key={ev.id} value={ev.id}>{ev.name} · {formatEventDates(ev)}</option>)}
-        </select>
-        <button type="submit" disabled={eventSaving}>Dodaj</button>
-      </form>
-      {eventMessage && <p className="small">{eventMessage}</p>}
     </div>
   )
 }
