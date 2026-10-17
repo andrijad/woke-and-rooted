@@ -35,7 +35,11 @@ export default function Login() {
           {error && <p className="error">{error}</p>}
           <button type="submit">Prijavi se</button>
         </form>
-        <p className="auth-links"><Link to="/forgot-password">Zaboravljena lozinka?</Link></p>
+        <p className="auth-links">
+          <Link to="/forgot-password">Zaboravljena lozinka?</Link>
+          {' · '}
+          <Link to="/registracija">Registracija</Link>
+        </p>
       </div>
       <Link to="/seanse" className="auth-cta">Prijavi se za 1 na 1 seansu</Link>
       <SiteLink onDark />

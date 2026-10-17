@@ -16,9 +16,15 @@ export default function MemberHome() {
       <div className="greeting">
         <h1>Zdravo, {displayName(profile, 'članice')}</h1>
       </div>
-      <SignupCard />
-      <EventsCard />
-      <OneOnOneCard />
+      {profile?.blocked ? (
+        <div className="notice">Tvoj nalog je trenutno blokiran. Javi se studiju za više informacija.</div>
+      ) : (
+        <>
+          <SignupCard />
+          <EventsCard />
+          <OneOnOneCard />
+        </>
+      )}
       <SiteLink />
     </div>
   )

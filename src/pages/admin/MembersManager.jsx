@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabaseClient'
-import { useAuth } from '../../context/AuthContext'
 import { formatEventDates } from '../../lib/events'
 import AddMemberForm from './AddMemberForm'
 import MemberEditForm from './MemberEditForm'
@@ -19,11 +18,7 @@ function monthLabel(period) {
 }
 
 export default function MembersManager() {
-  const { profile } = useAuth()
-  const [inviteLink, setInviteLink] = useState('')
-  const [inviteFor, setInviteFor] = useState('')
-  const [copied, setCopied] = useState(false)
-  const [members, setMembers] = useState([])
+    const [members, setMembers] = useState([])
   const [groups, setGroups] = useState([])
   const [events, setEvents] = useState([])
   const [loading, setLoading] = useState(true)
@@ -61,23 +56,6 @@ export default function MembersManager() {
     setLoading(false)
   }
 
-  async function createInvite(member) {
-    const { data, error } = await supabase
-      .from('invites')
-      .insert({ created_by: profile.id, member_id: member ? member.id : null })
-      .select('token')
-      .single()
-    if (error) { alert('Greška: ' + error.message); return }
-    setInviteLink(`${window.location.origin}/register?token=${data.token}`)
-    setInviteFor(member ? member.full_name : '')
-    setCopied(false)
-  }
-
-  async function copyInvite() {
-    await navigator.clipboard.writeText(inviteLink)
-    setCopied(true)
-  }
-
   async function removeMember(m) {
     if (!confirm(`Ukloniti člana ${m.full_name} iz evidencije?`)) return
     const { data, error } = await supabase.from('profiles').delete().eq('id', m.id).select()
@@ -88,6 +66,16 @@ export default function MembersManager() {
     } else if (!data || data.length === 0) alert('Član nije uklonjen (samo ručno dodati članovi mogu da se uklone).')
     await load()
   }
+
+  async function rpcAction(name, args, okConfirm) {
+    if (okConfirm && !confirm(okConfirm)) return
+    const { error } = await supabase.rpc(name, args)
+    if (error) alert('Greška: ' + error.message)
+    await load()
+  }
+
+  const newcomers = members.filter(m =>
+    !m.is_manual && (m.merge_candidate_id || Date.now() - new Date(m.created_at).getTime() < 14 * 86400000))
 
   async function handleAddMonthly(e) {
     e.preventDefault()
@@ -147,18 +135,30 @@ export default function MembersManager() {
     <div>
       <h3>Članovi</h3>
       <AddMemberForm onAdded={load} />
-      <div className="mb">
-        <button className="btn-ghost" onClick={() => createInvite(null)}>Novi link za registraciju</button>
-        {inviteLink && (
-          <div className="card mt">
-            <p className="small">
-              Link{inviteFor ? ` za ${inviteFor}` : ''} važi 7 dana i može da se iskoristi jednom.
-            </p>
-            <input className="field" readOnly value={inviteLink} onFocus={e => e.target.select()} />
-            <button onClick={copyInvite}>{copied ? '✓ Kopirano' : 'Kopiraj link'}</button>
-          </div>
-        )}
-      </div>
+      {newcomers.length > 0 && (
+        <div className="card mb">
+          <h4>Nove registracije</h4>
+          {newcomers.map(m => {
+            const cand = members.find(x => x.id === m.merge_candidate_id)
+            return (
+              <div key={m.id} className="small mb">
+                <strong>{ownerName(m)}</strong> · {m.email}{m.phone ? ` · ${m.phone}` : ''}
+                {m.blocked && <span className="badge" style={{ marginLeft: 6 }}>blokiran</span>}
+                {cand && (
+                  <div className="notice">
+                    Isti email već postoji u evidenciji: <strong>{cand.full_name}</strong>.
+                    <div>
+                      <button className="btn-sm" onClick={() => rpcAction('admin_merge_member', { p_new: m.id },
+                        `Spojiti nalog sa evidencijom „${cand.full_name}"? Sve prijave se prebacuju na novi nalog.`)}>Spoji</button>
+                      <button className="btn-ghost btn-sm" onClick={() => rpcAction('admin_dismiss_merge', { p_new: m.id })}>To je druga osoba</button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      )}
       {members.length === 0 && <p className="muted">Nema još registrovanih članova.</p>}
       {members.length > 0 && (
         <div className="scroll-x"><table>
@@ -183,6 +183,7 @@ export default function MembersManager() {
                 <td>
                   {ownerName(m, '(bez imena)')}
                   {m.is_manual && <span className="badge" style={{ marginLeft: 6 }}>bez naloga</span>}
+                  {m.blocked && <span className="badge" style={{ marginLeft: 6 }}>blokiran</span>}
                 </td>
                 <td className="small">
                   {m.phone || '—'}
@@ -199,9 +200,19 @@ export default function MembersManager() {
                 </td>
                 <td>
                   <button className="btn-ghost btn-sm" onClick={() => setEditingId(m.id)}>Izmeni</button>
+                  {!m.is_manual && (
+                    <>
+                      <button className="btn-ghost btn-sm"
+                        onClick={() => rpcAction('admin_set_blocked', { p_id: m.id, p_blocked: !m.blocked })}>
+                        {m.blocked ? 'Odblokiraj' : 'Blokiraj'}
+                      </button>
+                      <button className="btn-danger btn-sm"
+                        onClick={() => rpcAction('admin_delete_account', { p_id: m.id },
+                          `Obrisati nalog ${m.full_name}? Ovo se ne može poništiti.`)}>Obriši nalog</button>
+                    </>
+                  )}
                   {m.is_manual && (
                     <>
-                      <button className="btn-ghost btn-sm" onClick={() => createInvite(m)}>Link za registraciju</button>
                       <button className="btn-danger btn-sm" onClick={() => removeMember(m)}>Ukloni</button>
                     </>
                   )}
