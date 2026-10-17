@@ -33,6 +33,13 @@ Aplikacija za studio joge (vlasnica = admin; članovi = korisnici). Vite + React
 - Novi admin: registracija, pa `update profiles set is_admin = true where email = '…'`.
 - Potvrda mejla zahteva sopstveni SMTP u Supabase-u.
 
+## Bezbednost (audit 2026-10-17)
+- Sigurnost podataka je u RLS-u i triggerima, ne u frontendu. Član ne sme da utiče na `status`/`amount` svoje prijave: `validate_member_monthly_signup` / `validate_member_event_signup` (028) ih postavljaju, uz proveru otvorenog perioda, kapaciteta i dostupnosti.
+- Član ne menja `email`, `is_manual`, `nickname`, `merge_candidate_id` (trigger `protect_profile_owner_fields`).
+- HTML iz editora uvek kroz `sanitizeHtml` (lista dozvoljenih oznaka). Bez `dangerouslySetInnerHTML` na drugim mestima.
+- Security headeri i CSP su u `public/_headers`; nova spoljna domena (npr. Turnstile, analytics) mora da se doda u CSP.
+- Service role ključ nikad u frontend. Novi SECURITY DEFINER funkcije: uvek `set search_path = public` i provera `is_admin()` iznutra.
+
 ## Pravila koja se lako pogrešno urade
 - **RLS**: članovi vide samo svoje prijave. Za ukupan broj prijava (kapacitet) koristiti SECURITY DEFINER RPC: `count_monthly_signups`, `count_event_signups`.
 - **Delete pod RLS-om ne vraća grešku, samo 0 redova.** Uvek `.delete()....select()` i proveriti dužinu rezultata.
