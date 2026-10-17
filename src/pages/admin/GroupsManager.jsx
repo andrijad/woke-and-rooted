@@ -1,3 +1,4 @@
+import { errMsg } from '../../lib/errors'
 import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabaseClient'
 import RichTextEditor from '../../components/RichTextEditor'
@@ -64,10 +65,10 @@ export default function GroupsManager() {
     }
     if (selectedId) {
       const { error } = await supabase.from('groups').update(payload).eq('id', selectedId)
-      if (error) alert('Greška: ' + error.message)
+      if (error) alert('Greška: ' + errMsg(error))
     } else {
       const { data, error } = await supabase.from('groups').insert({ ...payload, active: true }).select().single()
-      if (error) { alert('Greška: ' + error.message); setSaving(false); return }
+      if (error) { alert('Greška: ' + errMsg(error)); setSaving(false); return }
       setSelectedId(data.id)
     }
     await loadGroups()
@@ -81,7 +82,7 @@ export default function GroupsManager() {
       weekday: Number(newDay.weekday),
       start_time: newDay.start_time
     })
-    if (error) alert('Greška: ' + error.message)
+    if (error) alert('Greška: ' + errMsg(error))
     const { data } = await supabase.from('group_schedule').select('*').eq('group_id', selectedId).order('weekday')
     setSchedule(data || [])
   }

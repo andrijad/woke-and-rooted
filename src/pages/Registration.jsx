@@ -1,3 +1,5 @@
+import { errMsg } from '../lib/errors'
+import { checkPassword, PASSWORD_HINT } from '../lib/password'
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { supabase } from '../lib/supabaseClient'
@@ -43,7 +45,8 @@ export default function Registration() {
     e.preventDefault()
     setError('')
     if (form.website) return // honeypot
-    if (form.password.length < 8) return setError('Lozinka mora imati najmanje 8 karaktera.')
+    const pwErr = checkPassword(form.password)
+    if (pwErr) return setError(pwErr)
     setSaving(true)
     const [group_id, period] = choice ? choice.split('|') : [null, null]
     const { data, error: err } = await supabase.auth.signUp({
@@ -61,9 +64,7 @@ export default function Registration() {
       }
     })
     if (err) {
-      setError(err.message.includes('Database error')
-        ? 'Registracija nije uspela. Proveri podatke ili nas kontaktiraj.'
-        : err.message)
+      setError(errMsg(err))
     } else if (data.session) {
       navigate('/')
     } else {
@@ -91,8 +92,9 @@ export default function Registration() {
         <input placeholder="Ime i prezime" required value={form.full_name} onChange={set('full_name')} className="field" />
         <input type="email" placeholder="Email" required autoComplete="email" value={form.email} onChange={set('email')} className="field" />
         <input placeholder="Telefon (opciono)" value={form.phone} onChange={set('phone')} className="field" />
-        <input type="password" placeholder="Lozinka (najmanje 8 karaktera)" required autoComplete="new-password"
+        <input type="password" placeholder="Lozinka" required autoComplete="new-password"
           value={form.password} onChange={set('password')} className="field" />
+        <p className="small muted">{PASSWORD_HINT}</p>
         <input className="hp" tabIndex={-1} autoComplete="off" aria-hidden="true" value={form.website} onChange={set('website')} />
 
         {offers.length > 0 && (

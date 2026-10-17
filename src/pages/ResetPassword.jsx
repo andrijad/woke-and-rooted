@@ -1,3 +1,5 @@
+import { errMsg } from '../lib/errors'
+import { checkPassword, PASSWORD_HINT } from '../lib/password'
 import { useEffect, useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { supabase } from '../lib/supabaseClient'
@@ -26,11 +28,12 @@ export default function ResetPassword() {
   async function handleSubmit(e) {
     e.preventDefault()
     setError('')
-    if (password.length < 8) return setError('Lozinka mora imati najmanje 8 karaktera.')
+    const pwErr = checkPassword(password)
+    if (pwErr) return setError(pwErr)
     if (password !== repeat) return setError('Lozinke se ne poklapaju.')
     setSaving(true)
     const { error: err } = await supabase.auth.updateUser({ password })
-    if (err) setError(err.message)
+    if (err) setError(errMsg(err))
     else {
       setDone(true)
       setTimeout(() => navigate('/'), 1500)
@@ -52,6 +55,7 @@ export default function ResetPassword() {
             onChange={e => setPassword(e.target.value)} />
           <input className="field" type="password" placeholder="Ponovi lozinku" autoComplete="new-password" value={repeat}
             onChange={e => setRepeat(e.target.value)} />
+          <p className="small muted">{PASSWORD_HINT}</p>
           {error && <p className="error">{error}</p>}
           <button type="submit" disabled={saving}>Sačuvaj lozinku</button>
         </form>

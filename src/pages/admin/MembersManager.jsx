@@ -1,3 +1,4 @@
+import { errMsg } from '../../lib/errors'
 import { Fragment, useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabaseClient'
 import { formatEventDates } from '../../lib/events'
@@ -63,7 +64,7 @@ export default function MembersManager() {
     if (error) {
       alert(error.code === '23503'
         ? 'Član ima prijave. Prvo ukloni njegove prijave u tabu „Termini i uplate".'
-        : 'Greška: ' + error.message)
+        : 'Greška: ' + errMsg(error))
     } else if (!data || data.length === 0) alert('Član nije uklonjen (samo ručno dodati članovi mogu da se uklone).')
     await load()
   }
@@ -79,7 +80,7 @@ export default function MembersManager() {
   async function rpcAction(name, args, okConfirm) {
     if (okConfirm && !confirm(okConfirm)) return
     const { error } = await supabase.rpc(name, args)
-    if (error) alert('Greška: ' + error.message)
+    if (error) alert('Greška: ' + errMsg(error))
     await load()
   }
 
@@ -103,7 +104,7 @@ export default function MembersManager() {
     if (error) {
       setMonthlyMessage(error.code === '23505'
         ? 'Član je već prijavljen u neku grupu za taj mesec.'
-        : 'Greška: ' + error.message)
+        : 'Greška: ' + errMsg(error))
     } else {
       setMonthlyMessage('Dodato. Uplatu potvrđuješ u tabu „Termini i uplate".')
       setMonthlyForm({ ...monthlyForm, group_id: '' })
@@ -130,7 +131,7 @@ export default function MembersManager() {
     if (error) {
       setEventMessage(error.code === '23505'
         ? 'Ovaj član je već prijavljen na ovaj događaj.'
-        : 'Greška: ' + error.message)
+        : 'Greška: ' + errMsg(error))
     } else {
       setEventMessage('Dodato. Status uplate je u tabu „Termini i uplate".')
       setEventForm({ ...eventForm, event_id: '' })
