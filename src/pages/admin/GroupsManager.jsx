@@ -75,6 +75,23 @@ export default function GroupsManager() {
     setSaving(false)
   }
 
+  async function deleteGroup() {
+    const g = groups.find(x => x.id === selectedId)
+    if (!g?.archived) return
+    if (!confirm(`Trajno obrisati grupu „${g.name}"? Ovo se ne može poništiti.`)) return
+    const { data, error } = await supabase.from('groups').delete().eq('id', selectedId).select()
+    if (error) {
+      alert(error.code === '23503'
+        ? 'Grupa ima prijave pa ne može da se obriše. Prvo ukloni prijave u tabu „Termini i uplate".'
+        : 'Greška: ' + errMsg(error))
+    } else if (!data || data.length === 0) {
+      alert('Grupa nije obrisana.')
+    } else {
+      selectGroup(null)
+    }
+    await loadGroups()
+  }
+
   async function addScheduleRow() {
     if (!selectedId) { alert('Prvo sačuvaj grupu.'); return }
     const { error } = await supabase.from('group_schedule').insert({
@@ -131,6 +148,9 @@ export default function GroupsManager() {
         <button type="submit" className="mt" disabled={saving}>
           {selectedId ? 'Sačuvaj izmene' : 'Napravi grupu'}
         </button>
+        {selectedId && groups.find(x => x.id === selectedId)?.archived && (
+          <button type="button" className="btn-danger mt" onClick={deleteGroup}>Obriši trajno</button>
+        )}
       </form>
 
       {selectedId && (

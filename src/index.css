@@ -544,3 +544,21 @@ dialog.modal::backdrop { background: rgba(60, 45, 30, 0.55); }
 .verified { color: var(--moss); font-weight: 700; }
 .unverified { color: var(--clay); font-weight: 600; }
 .choice-inline { display: block; margin: 10px 0; font-size: 0.9375rem; }
+
+/* ---------- Lista članova (vlasnica) ---------- */
+table.members { min-width: 640px; }
+table.members td { vertical-align: top; }
+.m-name { min-width: 210px; }
+.m-contact, .m-groups { white-space: nowrap; }
+.row-actions { margin-top: 4px; font-size: 0.8125rem; }
+.row-actions button {
+  background: none; border: none; padding: 2px 0; margin-right: 12px;
+  min-height: 0; color: var(--moss); font: inherit; font-weight: 600; cursor: pointer;
+  text-decoration: underline; text-underline-offset: 2px;
+}
+.row-actions button:hover { color: var(--clay); background: none; }
+.row-actions button.danger { color: var(--clay); }
+.row-actions button.danger:hover { color: var(--clay-dark); }
+.row-actions button:first-child { margin-left: 0; }
+.site-link a + a { margin-left: 14px; }
+.m-sticky { position: sticky; left: 0; max-width: calc(100vw - 48px); }

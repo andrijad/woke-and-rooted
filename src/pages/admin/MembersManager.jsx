@@ -144,30 +144,43 @@ export default function MembersManager() {
       <AddMemberForm onAdded={load} />
       {members.length === 0 && <p className="muted">Nema još registrovanih članova.</p>}
       {members.length > 0 && (
-        <div className="scroll-x"><table>
+        <div className="scroll-x"><table className="members">
           <thead>
             <tr>
               <th>Ime</th>
               <th>Kontakt</th>
               <th>Redovna grupa</th>
-              <th></th>
             </tr>
           </thead>
           <tbody>
             {members.map(m => editingId === m.id ? (
               <tr key={m.id}>
-                <td colSpan={4}>
-                  <MemberEditForm member={m} onCancel={() => setEditingId(null)}
-                    onSaved={async () => { setEditingId(null); await load() }} />
+                <td colSpan={3}>
+                  <div className="m-sticky">
+                    <MemberEditForm member={m} onCancel={() => setEditingId(null)}
+                      onSaved={async () => { setEditingId(null); await load() }} />
+                  </div>
                 </td>
               </tr>
             ) : (
               <Fragment key={m.id}>
               <tr>
-                <td>
-                  {ownerName(m, '(bez imena)')}
+                <td className="m-name">
+                  <strong>{ownerName(m, '(bez imena)')}</strong>
                   {m.is_manual && <span className="badge" style={{ marginLeft: 6 }}>bez naloga</span>}
                   {m.is_new && <span className="badge badge-new" style={{ marginLeft: 6 }}>nov član</span>}
+                  <div className="row-actions">
+                    <button type="button" onClick={() => setEditingId(m.id)}>Izmeni</button>
+                    <button type="button" aria-label="Dodaj u grupu ili na događaj" title="Dodaj u grupu ili na događaj"
+                      onClick={() => openAdd(m, 'group')}>+</button>
+                    {m.is_manual ? (
+                      <button type="button" className="danger" onClick={() => removeMember(m)}>Ukloni</button>
+                    ) : (
+                      <button type="button" className="danger"
+                        onClick={() => rpcAction('admin_delete_account', { p_id: m.id },
+                          `Obrisati nalog ${m.full_name}? Ovo se ne može poništiti.`)}>Obriši nalog</button>
+                    )}
+                  </div>
                   {m.merge_candidate_id && (() => {
                     const cand = members.find(x => x.id === m.merge_candidate_id)
                     return cand ? (
@@ -181,8 +194,8 @@ export default function MembersManager() {
                       </div>
                     ) : null
                   })()}
-                  </td>
-                <td className="small">
+                </td>
+                <td className="small m-contact">
                   {m.phone || '—'}
                   {m.email && (m.is_manual
                     ? <div className="muted">{m.email}</div>
@@ -191,35 +204,26 @@ export default function MembersManager() {
                       : <div className="unverified" title="Član još nije potvrdio email">{m.email} · nije potvrđen</div>)}
                   {m.email_secondary && <div className="muted">{m.email_secondary}</div>}
                 </td>
-                <td className="small">
+                <td className="small m-groups">
                   {m.monthly.length === 0 && '—'}
                   {m.monthly.map(r => (
                     <div key={r.period}>
-                      {monthLabel(r.period)}: {r.groups?.name} {r.status === 'paid' ? '✓' : '(čeka uplatu)'} <span className="muted">· poziv {r.ref_code}</span>
+                      {monthLabel(r.period)}: {r.groups?.name} {r.status === 'paid' ? '✓' : '(čeka uplatu)'}
                     </div>
                   ))}
-                </td>
-                <td>
-                  <button className="btn-ghost btn-sm" onClick={() => setEditingId(m.id)}>Izmeni</button>
-                  <button className="btn-ghost btn-sm" onClick={() => openAdd(m, 'group')}>+ Grupa</button>
-                  <button className="btn-ghost btn-sm" onClick={() => openAdd(m, 'event')}>+ Događaj</button>
-                  {!m.is_manual && (
-                    <>
-                      <button className="btn-danger btn-sm"
-                        onClick={() => rpcAction('admin_delete_account', { p_id: m.id },
-                          `Obrisati nalog ${m.full_name}? Ovo se ne može poništiti.`)}>Obriši nalog</button>
-                    </>
-                  )}
-                  {m.is_manual && (
-                    <>
-                      <button className="btn-danger btn-sm" onClick={() => removeMember(m)}>Ukloni</button>
-                    </>
-                  )}
                 </td>
               </tr>
               {addFor?.id === m.id && (
                 <tr>
-                  <td colSpan={4}>
+                  <td colSpan={3}>
+                    <div className="m-sticky">
+                    <div className="row mb">
+                      <select value={addFor.kind} onChange={e => setAddFor({ ...addFor, kind: e.target.value })}
+                        aria-label="Dodaj u">
+                        <option value="group">Joga grupa</option>
+                        <option value="event">Događaj / radionica</option>
+                      </select>
+                    </div>
                     {addFor.kind === 'group' ? (
                       <form onSubmit={handleAddMonthly} className="row">
                         <select value={monthlyForm.group_id} required
@@ -230,7 +234,7 @@ export default function MembersManager() {
                         <input type="month" value={monthlyForm.month} required
                           onChange={e => setMonthlyForm({ ...monthlyForm, month: e.target.value })} />
                         <button type="submit" disabled={monthlySaving}>Dodaj u grupu</button>
-                        <button type="button" className="btn-ghost" onClick={() => setAddFor(null)}>Otkaži</button>
+                        <button type="button" className="btn-ghost" onClick={() => setAddFor(null)}>Zatvori</button>
                       </form>
                     ) : (
                       <form onSubmit={handleAddEventSignup} className="row">
@@ -240,11 +244,12 @@ export default function MembersManager() {
                           {events.map(ev => <option key={ev.id} value={ev.id}>{ev.name} · {formatEventDates(ev)}</option>)}
                         </select>
                         <button type="submit" disabled={eventSaving}>Dodaj na događaj</button>
-                        <button type="button" className="btn-ghost" onClick={() => setAddFor(null)}>Otkaži</button>
+                        <button type="button" className="btn-ghost" onClick={() => setAddFor(null)}>Zatvori</button>
                       </form>
                     )}
                     {addFor.kind === 'group' && monthlyMessage && <p className="small">{monthlyMessage}</p>}
                     {addFor.kind === 'event' && eventMessage && <p className="small">{eventMessage}</p>}
+                    </div>
                   </td>
                 </tr>
               )}
