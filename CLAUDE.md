@@ -11,16 +11,16 @@ Aplikacija za studio joge (vlasnica = admin; članovi = korisnici). Vite + React
 ## Struktura
 - `src/pages/Login|ForgotPassword|ResetPassword.jsx` — prijava i reset lozinke
 - `src/pages/AdminHome.jsx` — tabovi: **Članovi** (MembersManager), **Grupe i događaji** (GroupsAndEvents → GroupsManager / EventsManager, samo definicije), **Termini i uplate** (SignupsOverview, prijave + potvrda uplate)
-- `src/pages/MemberHome.jsx` — SignupCard (redovna joga), DropinCard (individualni čas), EventsCard (događaji/radionice)
+- `src/pages/MemberHome.jsx` — SignupCard (redovna joga), EventsCard (događaji/radionice)
 - `src/lib/` — `ips.js` (IPS QR + pozivi na broj), `schedule.js` (termini grupa), `events.js`, `useRefreshOnFocus.js`, `supabaseClient.js`
 - `supabase/migrations/` — SQL migracije, numerisane redom (001…). `010` je namerno preskočena (zamenjena sa `013`).
 
 ## Model podataka (ukratko)
 - `profiles` (id, full_name, phone, email, is_admin, is_manual). `is_manual = true` → član bez naloga, kojeg vodi vlasnica (id nije u auth.users).
-- `groups` (monthly_price, dropin_price, capacity, active, archived) + `group_schedule` (dani/vreme).
+- `groups` (monthly_price, capacity, active, archived) + `group_schedule` (dani/vreme).
 - `group_signup_periods` — vlasnica otvara/zatvara prijave **po grupi i mesecu** (period = prvi dan meseca).
 - `monthly_signups` — jedna grupa po članu po mesecu (unique index na member_id+period). Članovi sami biraju grupu iz otvorenih.
-- `dropin_signups` — individualni časovi; `event_signups` — jednokratni događaji; `events` (capacity, archived, published).
+- `event_signups` — jednokratni događaji (individualni časovi/`dropin_signups` uklonjeni u 023); `events` (capacity, archived, published).
 - Dodela članova grupama (`group_memberships`, `admin_set_member_group`) je uklonjena u 019 — članovi sami biraju grupu iz otvorenih prijava.
 - Statusi uplate: `due` → `paid`; potvrđuje samo vlasnica.
 
@@ -35,7 +35,7 @@ Aplikacija za studio joge (vlasnica = admin; članovi = korisnici). Vite + React
 - **Delete pod RLS-om ne vraća grešku, samo 0 redova.** Uvek `.delete()....select()` i proveriti dužinu rezultata.
 - **Datumi**: nikad `toISOString()` za lokalne datume (UTC pomera dan). Koristiti `getFullYear/getMonth/getDate` sa padStart.
 - Član može da poništi prijavu samo dok je `status = 'due'` (RLS politika `*_delete_own_due`).
-- Kapacitet: pun termin/grupa → dugme "Prijavi se" zamenjuje "Grupa je popunjena". Ne važi za individualne časove.
+- Kapacitet: pun termin/grupa → dugme "Prijavi se" zamenjuje "Grupa je popunjena".
 - Arhivirano (`archived`) se ne prikazuje članovima; vlasnica ih vidi preko checkbox-a.
 - Ažuriranje prikaza: `useRefreshOnFocus` (refetch na fokus prozora), nije realtime.
 

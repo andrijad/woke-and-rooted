@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { supabase } from '../lib/supabaseClient'
+import SiteLink from '../components/SiteLink'
 
 const INVALID_TEXT = {
   invalid: 'Link nije ispravan.',
@@ -13,6 +14,7 @@ function Frame({ children }) {
     <div className="auth">
       <img className="logo" src="/brand/logo-yellow.svg" alt="Woke & Rooted" />
       <div className="auth-card">{children}</div>
+      <SiteLink onDark />
     </div>
   )
 }
