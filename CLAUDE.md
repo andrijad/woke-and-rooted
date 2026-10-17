@@ -12,6 +12,7 @@ Aplikacija za studio joge (vlasnica = admin; članovi = korisnici). Vite + React
 - `src/pages/Login|ForgotPassword|ResetPassword.jsx` — prijava i reset lozinke
 - `src/pages/AdminHome.jsx` — tabovi: **Članovi** (MembersManager), **Grupe i događaji** (GroupsAndEvents → GroupsManager / EventsManager, samo definicije), **Termini i uplate** (SignupsOverview, prijave + potvrda uplate)
 - `src/pages/MemberHome.jsx` — SignupCard (redovna joga), EventsCard (događaji/radionice)
+- `src/pages/OneOnOneForm.jsx` (`/seanse`, javno) i `OneOnOneStatus.jsx` (`/seanse/status/:token`, javno) — upit za 1 na 1 seanse; `admin/OneOnOneManager.jsx` (tab „1 na 1 seanse“); `member/OneOnOneCard.jsx`
 - `src/lib/` — `ips.js` (IPS QR + pozivi na broj), `schedule.js` (termini grupa), `events.js`, `useRefreshOnFocus.js`, `supabaseClient.js`
 - `supabase/migrations/` — SQL migracije, numerisane redom (001…). `010` je namerno preskočena (zamenjena sa `013`).
 
@@ -20,6 +21,7 @@ Aplikacija za studio joge (vlasnica = admin; članovi = korisnici). Vite + React
 - `groups` (monthly_price, capacity, active, archived) + `group_schedule` (dani/vreme).
 - `group_signup_periods` — vlasnica otvara/zatvara prijave **po grupi i mesecu** (period = prvi dan meseca).
 - `monthly_signups` — jedna grupa po članu po mesecu (unique index na member_id+period). Članovi sami biraju grupu iz otvorenih.
+- `one_on_one_requests` — upiti za 1 na 1 seanse (gost ili član; statusi new → scheduled → paid / cancelled; gost prati status preko `access_token` kroz RPC `get_one_on_one_status`; poziv na broj se dodeljuje pri zakazivanju; cena u `studio_settings.session_price`). Mejlovi još ne postoje.
 - `event_signups` — jednokratni događaji (individualni časovi/`dropin_signups` uklonjeni u 023); `events` (capacity, archived, published).
 - Dodela članova grupama (`group_memberships`, `admin_set_member_group`) je uklonjena u 019 — članovi sami biraju grupu iz otvorenih prijava.
 - Statusi uplate: `due` → `paid`; potvrđuje samo vlasnica.
