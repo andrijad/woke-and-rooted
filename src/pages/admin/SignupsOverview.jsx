@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabaseClient'
 import { useAuth } from '../../context/AuthContext'
 import { formatEventDates } from '../../lib/events'
+import { ownerName } from '../../lib/names'
 
 function nextMonthValue() {
   const d = new Date()
@@ -55,7 +56,7 @@ export default function SignupsOverview() {
     const [{ data: periodsData }, { data: signupsData }] = await Promise.all([
       supabase.from('group_signup_periods').select('*').in('group_id', ids).order('period', { ascending: false }),
       supabase.from('monthly_signups')
-        .select('id, group_id, period, amount, status, ref_code, profiles(full_name)')
+        .select('id, group_id, period, amount, status, ref_code, profiles(full_name, nickname)')
         .in('group_id', ids)
         .order('period', { ascending: false })
     ])
@@ -88,7 +89,7 @@ export default function SignupsOverview() {
     if (list.length > 0) {
       const { data: signupsData } = await supabase
         .from('event_signups')
-        .select('id, event_id, amount, status, ref_code, added_by_admin, profiles(full_name)')
+        .select('id, event_id, amount, status, ref_code, added_by_admin, profiles(full_name, nickname)')
         .in('event_id', list.map(e => e.id))
       const grouped = {}
       for (const s of signupsData || []) {
@@ -147,14 +148,14 @@ export default function SignupsOverview() {
   }
 
   async function removeMonthly(row) {
-    if (!confirm(`Ukloniti prijavu za ${row.profiles?.full_name || 'ovog člana'} (${row.period})?`)) return
+    if (!confirm(`Ukloniti prijavu za ${ownerName(row.profiles, 'ovog člana')} (${row.period})?`)) return
     const { error } = await supabase.from('monthly_signups').delete().eq('id', row.id)
     if (error) alert('Greška: ' + error.message)
     await loadGroupsAndPeriods()
   }
 
   async function removeEventSignup(row) {
-    if (!confirm(`Ukloniti prijavu za ${row.profiles?.full_name || 'ovog člana'}?`)) return
+    if (!confirm(`Ukloniti prijavu za ${ownerName(row.profiles, 'ovog člana')}?`)) return
     const { error } = await supabase.from('event_signups').delete().eq('id', row.id)
     if (error) alert('Greška: ' + error.message)
     await loadEvents()
@@ -219,7 +220,7 @@ export default function SignupsOverview() {
             <tbody>
               {list.map(r => (
                 <tr key={r.id}>
-                  <td>{r.profiles?.full_name || '—'}</td>
+                  <td>{ownerName(r.profiles)}</td>
                   <td>{r.amount} RSD</td>
                   <td className="small muted">Poziv: <span className="strong">{r.ref_code}</span></td>
                   <td>
@@ -334,7 +335,7 @@ export default function SignupsOverview() {
                 <tbody>
                   {signups.map(s => (
                     <tr key={s.id}>
-                      <td>{s.profiles?.full_name || '—'}{s.added_by_admin && ' (dodala vlasnica)'}</td>
+                      <td>{ownerName(s.profiles)}{s.added_by_admin && ' (dodala vlasnica)'}</td>
                       <td>{s.amount} RSD</td>
                       <td className="small muted">Poziv: <span className="strong">{s.ref_code}</span></td>
                       <td>
