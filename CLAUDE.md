@@ -46,6 +46,11 @@ Aplikacija za studio joge (vlasnica = admin; članovi = korisnici). Vite + React
 - **Dizajn**: stilovi su u `src/index.css` (CSS promenljive + klase: `.shell .topbar .card .signup(.is-due/.is-paid) .offer .notice .empty .tabs/.tab .badge .field .row .auth .auth-card`; dugmad: podrazumevano mahovina, `.btn-ghost`, `.btn-danger`, `.btn-sm`, `.btn-on-moss`). Nove ekrane graditi klasama, bez `style={{…}}` osim sitnih razmaka. Boje brenda: mahovina `#4a5c36`, lan `#f2e8cc`, glina `#a05032`, kora `#5a4632`, slama `#bf9840` (plaćeno = mahovina, čeka uplatu = glina). Fontovi (self-hosted, `@fontsource-variable`): Antonio za naslove, Figtree za tekst. Logotipi i ikonice su u `public/brand/` (logo-brown/yellow/terracotta/green, symbol, yoga, cocoa, nature*).
 - Tajne (service role ključ, SMTP) nikad u repo ni u frontend kod.
 
+## Hosting (Cloudflare)
+- Cloudflare Workers (statički assets) povezan sa GitHub repoom; `wrangler.jsonc` uključuje SPA fallback (`/register`, `/reset-password` moraju da rade na direktan link).
+- `VITE_SUPABASE_URL` i `VITE_SUPABASE_KEY` se ugrađuju u build, pa moraju biti u **Settings → Build → Variables and secrets** (ne u runtime Variables). Posle promene: novi build/deploy.
+- U Supabase → Authentication → URL Configuration: Site URL i Redirect URLs moraju sadržati adresu sajta (+ `/register`, `/reset-password`).
+
 ## Odloženo / na redu
 - Obaveštenja (email + PWA push; Viber kao kopirani tekst).
 - Podešavanje sopstvenog SMTP-a (bez toga reset lozinke radi samo za članove Supabase tima).
