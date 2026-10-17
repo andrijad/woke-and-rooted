@@ -9,7 +9,8 @@ export default function MemberEditForm({ member, onSaved, onCancel }) {
     phone: member.phone || '',
     nickname: member.nickname || '',
     email_secondary: member.email_secondary || '',
-    email: member.email || ''
+    email: member.email || '',
+    is_new: !!member.is_new
   })
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -24,7 +25,8 @@ export default function MemberEditForm({ member, onSaved, onCancel }) {
       p_phone: form.phone,
       p_nickname: form.nickname,
       p_email_secondary: form.email_secondary,
-      p_email: form.email
+      p_email: form.email,
+      p_is_new: form.is_new
     })
     setSaving(false)
     if (err) setError('Greška: ' + errMsg(err))
@@ -47,6 +49,10 @@ export default function MemberEditForm({ member, onSaved, onCancel }) {
       <input className="field" type="email" value={form.email} onChange={set('email')} disabled={!member.is_manual} />
       <label className="lbl">Dodatni email (samo za kontakt)</label>
       <input className="field" type="email" value={form.email_secondary} onChange={set('email_secondary')} />
+      <label className="choice-inline">
+        <input type="checkbox" checked={form.is_new} onChange={e => setForm({ ...form, is_new: e.target.checked })} />
+        {' '}Nov član (oznaka se skida kad ga dodeliš u grupu ili na događaj)
+      </label>
       <button type="submit" disabled={saving}>{saving ? 'Čuvam...' : 'Sačuvaj'}</button>
       <button type="button" className="btn-ghost" onClick={onCancel} style={{ marginLeft: 8 }}>Otkaži</button>
       {error && <p className="error">{error}</p>}
