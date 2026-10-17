@@ -37,6 +37,7 @@ export default function Login() {
         </form>
         <p className="auth-links"><Link to="/forgot-password">Zaboravljena lozinka?</Link></p>
       </div>
+      <Link to="/seanse" className="auth-cta">Prijavi se za 1 na 1 seansu</Link>
       <SiteLink onDark />
     </div>
   )

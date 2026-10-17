@@ -4,11 +4,13 @@ import SiteLink from '../components/SiteLink'
 import MembersManager from './admin/MembersManager'
 import GroupsAndEvents from './admin/GroupsAndEvents'
 import SignupsOverview from './admin/SignupsOverview'
+import OneOnOneManager from './admin/OneOnOneManager'
 
 const TABS = [
   { id: 'members', label: 'Članovi' },
   { id: 'groupsEvents', label: 'Grupe i događaji' },
-  { id: 'signups', label: 'Termini i uplate' }
+  { id: 'signups', label: 'Termini i uplate' },
+  { id: 'oneOnOne', label: '1 na 1 seanse' }
 ]
 
 export default function AdminHome() {
@@ -34,6 +36,7 @@ export default function AdminHome() {
       {tab === 'members' && <MembersManager />}
       {tab === 'groupsEvents' && <GroupsAndEvents />}
       {tab === 'signups' && <SignupsOverview />}
+      {tab === 'oneOnOne' && <OneOnOneManager />}
       <SiteLink />
     </div>
   )
