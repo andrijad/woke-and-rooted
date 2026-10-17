@@ -54,6 +54,24 @@ export default function EventsManager() {
     })
   }
 
+  async function deleteEvent() {
+    const ev = events.find(x => x.id === selectedId)
+    if (!ev?.archived) return
+    if (!confirm(`Trajno obrisati događaj „${ev.name}"? Ovo se ne može poništiti.`)) return
+    const { data, error: err } = await supabase.from('events').delete().eq('id', selectedId).select()
+    if (err) {
+      setError(err.code === '23503'
+        ? 'Događaj ima prijave pa ne može da se obriše. Prvo ukloni prijave u tabu „Termini i uplate".'
+        : 'Greška: ' + errMsg(err))
+    } else if (!data || data.length === 0) {
+      setError('Događaj nije obrisan.')
+    } else {
+      setSelectedId(null)
+      setForm(BLANK)
+    }
+    await loadEvents()
+  }
+
   async function handleSave(e) {
     e.preventDefault()
     setError('')
@@ -179,6 +197,9 @@ export default function EventsManager() {
         <button type="submit" className="mt" disabled={saving}>
           {selectedId ? 'Sačuvaj izmene' : 'Napravi događaj'}
         </button>
+        {selectedId && events.find(x => x.id === selectedId)?.archived && (
+          <button type="button" className="btn-danger mt" onClick={deleteEvent}>Obriši trajno</button>
+        )}
       </form>
 
       <p className="small muted mt">
