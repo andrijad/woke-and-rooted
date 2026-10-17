@@ -29,7 +29,7 @@ Aplikacija za studio joge (vlasnica = admin; članovi = korisnici). Vite + React
 ## Registracija
 - Dve opcije: (1) javna forma `/registracija` (`pages/Registration.jsx`; `/register` je alias, stari `?token=` linkovi rade), (2) vlasnica dodaje člana ručno (`is_manual`). Forma ima honeypot i opcioni izbor grupe (RPC `get_open_groups_for_registration`; upis u grupu radi trigger `handle_new_user` uz proveru kapaciteta i otvorenog perioda).
 - Nalog radi odmah. Mejl nije verifikovan dok se ne podesi SMTP, zato: ako se mejl poklapa sa ručnim članom, postavlja se `profiles.merge_candidate_id` i vlasnica u „Nove registracije“ potvrđuje spajanje (`admin_merge_member`) ili odbija (`admin_dismiss_merge`). Grupa se tada ne upisuje automatski.
-- Vlasnica može da **blokira** (`profiles.blocked`, `admin_set_blocked`; restriktivne RLS politike brane nove prijave) ili **obriše** nalog bez prijava (`admin_delete_account`).
+- Vlasnica može da **obriše** nalog bez prijava (`admin_delete_account`).
 - Novi admin: registracija, pa `update profiles set is_admin = true where email = '…'`.
 - Potvrda mejla zahteva sopstveni SMTP u Supabase-u.
 
