@@ -27,9 +27,10 @@ Aplikacija za studio joge (vlasnica = admin; članovi = korisnici). Vite + React
 - Statusi uplate: `due` → `paid`; potvrđuje samo vlasnica.
 
 ## Registracija
-- Nalog se pravi samo preko pozivnog linka `/register?token=…` (tabela `invites`, važi 7 dana, jednokratno). Proveru radi trigger `handle_new_user`, ne frontend.
-- Pozivnica može biti vezana za ručno dodatog člana (`invites.member_id`) — tada se njegova evidencija povezuje sa novim nalogom (id se prebacuje, FK imaju ON UPDATE CASCADE).
-- Nalozi se ne prave iz Supabase dashboarda. Novi admin: registracija preko linka, pa `update profiles set is_admin = true where email = '…'`.
+- Dve opcije: (1) javna forma `/registracija` (`pages/Registration.jsx`; `/register` je alias, stari `?token=` linkovi rade), (2) vlasnica dodaje člana ručno (`is_manual`). Forma ima honeypot i opcioni izbor grupe (RPC `get_open_groups_for_registration`; upis u grupu radi trigger `handle_new_user` uz proveru kapaciteta i otvorenog perioda).
+- Nalog radi odmah. Mejl nije verifikovan dok se ne podesi SMTP, zato: ako se mejl poklapa sa ručnim članom, postavlja se `profiles.merge_candidate_id` i vlasnica u „Nove registracije“ potvrđuje spajanje (`admin_merge_member`) ili odbija (`admin_dismiss_merge`). Grupa se tada ne upisuje automatski.
+- Vlasnica može da **blokira** (`profiles.blocked`, `admin_set_blocked`; restriktivne RLS politike brane nove prijave) ili **obriše** nalog bez prijava (`admin_delete_account`).
+- Novi admin: registracija, pa `update profiles set is_admin = true where email = '…'`.
 - Potvrda mejla zahteva sopstveni SMTP u Supabase-u.
 
 ## Pravila koja se lako pogrešno urade
@@ -49,9 +50,9 @@ Aplikacija za studio joge (vlasnica = admin; članovi = korisnici). Vite + React
 - Tajne (service role ključ, SMTP) nikad u repo ni u frontend kod.
 
 ## Hosting (Cloudflare)
-- Cloudflare Workers (statički assets) povezan sa GitHub repoom; `wrangler.jsonc` uključuje SPA fallback (`/register`, `/reset-password` moraju da rade na direktan link).
+- Cloudflare Workers (statički assets) povezan sa GitHub repoom; `wrangler.jsonc` uključuje SPA fallback (`/registracija`, `/reset-password` moraju da rade na direktan link).
 - `VITE_SUPABASE_URL` i `VITE_SUPABASE_KEY` se ugrađuju u build, pa moraju biti u **Settings → Build → Variables and secrets** (ne u runtime Variables). Posle promene: novi build/deploy.
-- U Supabase → Authentication → URL Configuration: Site URL i Redirect URLs moraju sadržati adresu sajta (+ `/register`, `/reset-password`).
+- U Supabase → Authentication → URL Configuration: Site URL i Redirect URLs moraju sadržati adresu sajta (+ `/registracija`, `/reset-password`).
 
 ## Odloženo / na redu
 - Obaveštenja (email + PWA push; Viber kao kopirani tekst).
