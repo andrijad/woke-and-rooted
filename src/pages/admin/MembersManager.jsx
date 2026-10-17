@@ -171,8 +171,8 @@ export default function MembersManager() {
                   {m.is_new && <span className="badge badge-new" style={{ marginLeft: 6 }}>nov član</span>}
                   <div className="row-actions">
                     <button type="button" onClick={() => setEditingId(m.id)}>Izmeni</button>
-                    <button type="button" aria-label="Dodaj u grupu ili na događaj" title="Dodaj u grupu ili na događaj"
-                      onClick={() => openAdd(m, 'group')}>+</button>
+                    <button type="button" 
+                      onClick={() => openAdd(m, 'group')}>Dodaj u grupu / događaj</button>
                     {m.is_manual ? (
                       <button type="button" className="danger" onClick={() => removeMember(m)}>Ukloni</button>
                     ) : (
