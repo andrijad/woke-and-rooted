@@ -539,3 +539,8 @@ dialog.modal::backdrop { background: rgba(60, 45, 30, 0.55); }
 .qa dt { color: var(--muted); flex: 0 0 110px; }
 .qa dd { margin: 0; min-width: 0; }
 .qa .pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+
+.badge-new { background: var(--straw); color: var(--bark); }
+.verified { color: var(--moss); font-weight: 700; }
+.unverified { color: var(--clay); font-weight: 600; }
+.choice-inline { display: block; margin: 10px 0; font-size: 0.9375rem; }

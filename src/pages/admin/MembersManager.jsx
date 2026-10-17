@@ -84,9 +84,6 @@ export default function MembersManager() {
     await load()
   }
 
-  const newcomers = members.filter(m =>
-    !m.is_manual && (m.merge_candidate_id || Date.now() - new Date(m.created_at).getTime() < 14 * 86400000))
-
   async function handleAddMonthly(e) {
     e.preventDefault()
     setMonthlyMessage('')
@@ -145,29 +142,6 @@ export default function MembersManager() {
     <div>
       <h3>Članovi</h3>
       <AddMemberForm onAdded={load} />
-      {newcomers.length > 0 && (
-        <div className="card mb">
-          <h4>Nove registracije</h4>
-          {newcomers.map(m => {
-            const cand = members.find(x => x.id === m.merge_candidate_id)
-            return (
-              <div key={m.id} className="small mb">
-                <strong>{ownerName(m)}</strong> · {m.email}{m.phone ? ` · ${m.phone}` : ''}
-                {cand && (
-                  <div className="notice">
-                    Isti email već postoji u evidenciji: <strong>{cand.full_name}</strong>.
-                    <div>
-                      <button className="btn-sm" onClick={() => rpcAction('admin_merge_member', { p_new: m.id },
-                        `Spojiti nalog sa evidencijom „${cand.full_name}"? Sve prijave se prebacuju na novi nalog.`)}>Spoji</button>
-                      <button className="btn-ghost btn-sm" onClick={() => rpcAction('admin_dismiss_merge', { p_new: m.id })}>To je druga osoba</button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )
-          })}
-        </div>
-      )}
       {members.length === 0 && <p className="muted">Nema još registrovanih članova.</p>}
       {members.length > 0 && (
         <div className="scroll-x"><table>
@@ -193,10 +167,28 @@ export default function MembersManager() {
                 <td>
                   {ownerName(m, '(bez imena)')}
                   {m.is_manual && <span className="badge" style={{ marginLeft: 6 }}>bez naloga</span>}
+                  {m.is_new && <span className="badge badge-new" style={{ marginLeft: 6 }}>nov član</span>}
+                  {m.merge_candidate_id && (() => {
+                    const cand = members.find(x => x.id === m.merge_candidate_id)
+                    return cand ? (
+                      <div className="notice small">
+                        Isti email već postoji u evidenciji: <strong>{cand.full_name}</strong>.
+                        <div>
+                          <button className="btn-sm" onClick={() => rpcAction('admin_merge_member', { p_new: m.id },
+                            `Spojiti nalog sa evidencijom „${cand.full_name}"? Sve prijave se prebacuju na novi nalog.`)}>Spoji</button>
+                          <button className="btn-ghost btn-sm" onClick={() => rpcAction('admin_dismiss_merge', { p_new: m.id })}>To je druga osoba</button>
+                        </div>
+                      </div>
+                    ) : null
+                  })()}
                   </td>
                 <td className="small">
                   {m.phone || '—'}
-                  {m.email && <div className="muted">{m.email}</div>}
+                  {m.email && (m.is_manual
+                    ? <div className="muted">{m.email}</div>
+                    : m.email_verified
+                      ? <div className="muted">{m.email} <span className="verified" title="Email je potvrđen">✓</span></div>
+                      : <div className="unverified" title="Član još nije potvrdio email">{m.email} · nije potvrđen</div>)}
                   {m.email_secondary && <div className="muted">{m.email_secondary}</div>}
                 </td>
                 <td className="small">
