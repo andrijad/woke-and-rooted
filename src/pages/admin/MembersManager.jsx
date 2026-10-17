@@ -3,6 +3,8 @@ import { supabase } from '../../lib/supabaseClient'
 import { useAuth } from '../../context/AuthContext'
 import { formatEventDates } from '../../lib/events'
 import AddMemberForm from './AddMemberForm'
+import MemberEditForm from './MemberEditForm'
+import { ownerName } from '../../lib/names'
 
 function monthStart(offset = 0) {
   const d = new Date()
@@ -25,6 +27,7 @@ export default function MembersManager() {
   const [groups, setGroups] = useState([])
   const [events, setEvents] = useState([])
   const [loading, setLoading] = useState(true)
+  const [editingId, setEditingId] = useState(null)
   const [monthlyForm, setMonthlyForm] = useState({ member_id: '', group_id: '', month: monthStart().slice(0, 7) })
   const [monthlySaving, setMonthlySaving] = useState(false)
   const [monthlyMessage, setMonthlyMessage] = useState('')
@@ -168,15 +171,23 @@ export default function MembersManager() {
             </tr>
           </thead>
           <tbody>
-            {members.map(m => (
+            {members.map(m => editingId === m.id ? (
+              <tr key={m.id}>
+                <td colSpan={4}>
+                  <MemberEditForm member={m} onCancel={() => setEditingId(null)}
+                    onSaved={async () => { setEditingId(null); await load() }} />
+                </td>
+              </tr>
+            ) : (
               <tr key={m.id}>
                 <td>
-                  {m.full_name || '(bez imena)'}
+                  {ownerName(m, '(bez imena)')}
                   {m.is_manual && <span className="badge" style={{ marginLeft: 6 }}>bez naloga</span>}
                 </td>
                 <td className="small">
                   {m.phone || '—'}
                   {m.email && <div className="muted">{m.email}</div>}
+                  {m.email_secondary && <div className="muted">{m.email_secondary}</div>}
                 </td>
                 <td className="small">
                   {m.monthly.length === 0 && '—'}
@@ -187,6 +198,7 @@ export default function MembersManager() {
                   ))}
                 </td>
                 <td>
+                  <button className="btn-ghost btn-sm" onClick={() => setEditingId(m.id)}>Izmeni</button>
                   {m.is_manual && (
                     <>
                       <button className="btn-ghost btn-sm" onClick={() => createInvite(m)}>Link za registraciju</button>
@@ -204,7 +216,7 @@ export default function MembersManager() {
       <form onSubmit={handleAddMonthly} className="row mb">
         <select value={monthlyForm.member_id} onChange={e => setMonthlyForm({ ...monthlyForm, member_id: e.target.value })} required>
           <option value="">— član —</option>
-          {members.map(m => <option key={m.id} value={m.id}>{m.full_name}</option>)}
+          {members.map(m => <option key={m.id} value={m.id}>{ownerName(m)}</option>)}
         </select>
         <select value={monthlyForm.group_id} onChange={e => setMonthlyForm({ ...monthlyForm, group_id: e.target.value })} required>
           <option value="">— grupa —</option>
@@ -220,7 +232,7 @@ export default function MembersManager() {
       <form onSubmit={handleAddEventSignup} className="row">
         <select value={eventForm.member_id} onChange={e => setEventForm({ ...eventForm, member_id: e.target.value })} required>
           <option value="">— član —</option>
-          {members.map(m => <option key={m.id} value={m.id}>{m.full_name}</option>)}
+          {members.map(m => <option key={m.id} value={m.id}>{ownerName(m)}</option>)}
         </select>
         <select value={eventForm.event_id} onChange={e => setEventForm({ ...eventForm, event_id: e.target.value })} required>
           <option value="">— događaj —</option>

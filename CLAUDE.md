@@ -17,7 +17,7 @@ Aplikacija za studio joge (vlasnica = admin; članovi = korisnici). Vite + React
 - `supabase/migrations/` — SQL migracije, numerisane redom (001…). `010` je namerno preskočena (zamenjena sa `013`).
 
 ## Model podataka (ukratko)
-- `profiles` (id, full_name, phone, email, is_admin, is_manual). `is_manual = true` → član bez naloga, kojeg vodi vlasnica (id nije u auth.users).
+- `profiles` (id, full_name, nickname, phone, email, email_secondary, is_admin, is_manual). `nickname` vidi/menja samo vlasnica (trigger `protect_profile_owner_fields`); ako postoji, koristi se u članovom interfejsu (`displayName` u `src/lib/names.js`), a vlasnica vidi „Ime (nadimak)“ (`ownerName`). Vlasnica menja podatke preko RPC `admin_update_member` (email za prijavu samo kod `is_manual`; `email_secondary` je samo kontakt). `is_manual = true` → član bez naloga, kojeg vodi vlasnica (id nije u auth.users).
 - `groups` (monthly_price, capacity, active, archived) + `group_schedule` (dani/vreme).
 - `group_signup_periods` — vlasnica otvara/zatvara prijave **po grupi i mesecu** (period = prvi dan meseca).
 - `monthly_signups` — jedna grupa po članu po mesecu (unique index na member_id+period). Članovi sami biraju grupu iz otvorenih.
