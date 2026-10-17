@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { supabase } from '../lib/supabaseClient'
+import SiteLink from '../components/SiteLink'
 
 export default function ResetPassword() {
   const navigate = useNavigate()
@@ -64,6 +65,7 @@ export default function ResetPassword() {
         </p>
       )}
       </div>
+      <SiteLink onDark />
     </div>
   )
 }

@@ -492,3 +492,12 @@ dialog.modal::backdrop { background: rgba(60, 45, 30, 0.55); }
   display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; align-items: center;
   padding: 14px 22px 18px; border-top: 1px solid var(--line);
 }
+
+/* ---------- Link na glavni sajt ---------- */
+
+.site-link { margin: 28px 0 0; text-align: center; font-size: 0.9375rem; }
+.site-link a { color: var(--muted); }
+.site-link a:hover { color: var(--clay); }
+.site-link.on-dark { position: relative; z-index: 1; }
+.site-link.on-dark a { color: var(--linen); opacity: 0.85; }
+.site-link.on-dark a:hover { color: var(--straw); opacity: 1; }

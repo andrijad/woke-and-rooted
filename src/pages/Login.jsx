@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import SiteLink from '../components/SiteLink'
 
 export default function Login() {
   const { login } = useAuth()
@@ -36,6 +37,7 @@ export default function Login() {
         </form>
         <p className="auth-links"><Link to="/forgot-password">Zaboravljena lozinka?</Link></p>
       </div>
+      <SiteLink onDark />
     </div>
   )
 }

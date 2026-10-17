@@ -13,7 +13,7 @@ const WEEKDAYS = [
 ]
 
 const BLANK = {
-  name: '', monthly_price: '', dropin_price: '', capacity: '',
+  name: '', monthly_price: '', capacity: '',
   description_short: '', description_html: '', archived: false
 }
 
@@ -42,7 +42,6 @@ export default function GroupsManager() {
     setForm({
       name: group.name,
       monthly_price: group.monthly_price,
-      dropin_price: group.dropin_price,
       capacity: group.capacity ?? '',
       description_short: group.description_short || '',
       description_html: group.description_html || '',
@@ -58,7 +57,6 @@ export default function GroupsManager() {
     const payload = {
       name: form.name,
       monthly_price: Number(form.monthly_price),
-      dropin_price: Number(form.dropin_price),
       capacity: form.capacity === '' ? null : Number(form.capacity),
       description_short: form.description_short,
       description_html: form.description_html,
@@ -112,8 +110,6 @@ export default function GroupsManager() {
         <div className="row nowrap">
           <input className="grow" type="number" placeholder="Mesečna cena (RSD)" value={form.monthly_price}
             onChange={e => setForm({ ...form, monthly_price: e.target.value })} required />
-          <input className="grow" type="number" placeholder="Cena individualnog (RSD)" value={form.dropin_price}
-            onChange={e => setForm({ ...form, dropin_price: e.target.value })} required />
           <input className="grow" type="number" placeholder="Kapacitet (opciono)" value={form.capacity}
             onChange={e => setForm({ ...form, capacity: e.target.value })} />
         </div>

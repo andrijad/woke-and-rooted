@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useAuth } from '../context/AuthContext'
+import SiteLink from '../components/SiteLink'
 import MembersManager from './admin/MembersManager'
 import GroupsAndEvents from './admin/GroupsAndEvents'
 import SignupsOverview from './admin/SignupsOverview'
@@ -33,6 +34,7 @@ export default function AdminHome() {
       {tab === 'members' && <MembersManager />}
       {tab === 'groupsEvents' && <GroupsAndEvents />}
       {tab === 'signups' && <SignupsOverview />}
+      <SiteLink />
     </div>
   )
 }

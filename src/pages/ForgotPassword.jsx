@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabaseClient'
+import SiteLink from '../components/SiteLink'
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState('')
@@ -45,6 +46,7 @@ export default function ForgotPassword() {
       )}
       <p className="auth-links"><Link to="/login">Nazad na prijavu</Link></p>
       </div>
+      <SiteLink onDark />
     </div>
   )
 }
