@@ -1,11 +1,12 @@
 import { useRef, useEffect } from 'react'
+import { sanitizeHtml } from '../lib/sanitize'
 
 export default function RichTextEditor({ value, onChange }) {
   const ref = useRef(null)
 
   useEffect(() => {
     if (ref.current && ref.current.innerHTML !== (value || '')) {
-      ref.current.innerHTML = value || ''
+      ref.current.innerHTML = sanitizeHtml(value)
     }
   }, [value])
 

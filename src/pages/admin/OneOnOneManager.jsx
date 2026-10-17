@@ -129,8 +129,8 @@ function RequestCard({ r, price, onChanged }) {
         <span className="xs muted">Primljeno {received}</span>
       </div>
       <p className="small" style={{ margin: '4px 0 8px' }}>
-        <a href={`mailto:${r.email}`}>{r.email}</a>
-        {r.phone && <> · <a href={`tel:${r.phone}`}>{r.phone}</a></>}
+        <a href={`mailto:${r.email.replace(/[?&#\s]/g, '')}`}>{r.email}</a>
+        {r.phone && <> · <a href={`tel:${r.phone.replace(/[^\d+]/g, '')}`}>{r.phone}</a></>}
         {r.member_id ? <span className="badge moss" style={{ marginLeft: 8 }}>član</span> : <span className="badge" style={{ marginLeft: 8 }}>gost</span>}
       </p>
 
