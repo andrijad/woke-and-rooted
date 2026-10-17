@@ -501,3 +501,41 @@ dialog.modal::backdrop { background: rgba(60, 45, 30, 0.55); }
 .site-link.on-dark { position: relative; z-index: 1; }
 .site-link.on-dark a { color: var(--linen); opacity: 0.85; }
 .site-link.on-dark a:hover { color: var(--straw); opacity: 1; }
+
+/* ---------- 1 na 1: forma, pomoćni elementi ---------- */
+
+.hp { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
+.lbl { display: block; font-size: 0.9375rem; margin: 10px 0 0; color: var(--bark); }
+.lbl .field { margin-top: 4px; }
+.choice { border: none; padding: 0; margin: 14px 0 4px; }
+.choice legend { font-size: 0.9375rem; padding: 0; margin-bottom: 6px; }
+.choice label { display: block; margin: 4px 0; }
+.back { font-size: 0.9375rem; }
+.btn-link {
+  display: inline-block;
+  background: var(--moss);
+  color: var(--linen);
+  border: 1px solid var(--moss);
+  border-radius: var(--r-ctl);
+  padding: 9px 16px;
+  font-weight: 600;
+  text-decoration: none;
+}
+.btn-link:hover { background: var(--moss-dark); color: var(--linen); }
+.auth-cta {
+  position: relative;
+  z-index: 1;
+  margin-top: 18px;
+  color: var(--linen);
+  border: 1px solid rgba(242, 232, 204, 0.55);
+  border-radius: var(--r-ctl);
+  padding: 10px 18px;
+  text-decoration: none;
+  font-weight: 600;
+}
+.auth-cta:hover { background: rgba(242, 232, 204, 0.14); color: var(--linen); border-color: var(--linen); }
+.qa { margin: 0; }
+.qa > div { display: flex; gap: 12px; padding: 4px 0; font-size: 0.9375rem; }
+.qa dt { color: var(--muted); flex: 0 0 110px; }
+.qa dd { margin: 0; min-width: 0; }
+.qa .pre { white-space: pre-wrap; overflow-wrap: anywhere; }
