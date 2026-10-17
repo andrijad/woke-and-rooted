@@ -1,3 +1,4 @@
+import { errMsg } from '../../lib/errors'
 import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabaseClient'
 import { useAuth } from '../../context/AuthContext'
@@ -76,14 +77,14 @@ export default function EventsManager() {
 
     if (selectedId) {
       const { error: err } = await supabase.from('events').update(payload).eq('id', selectedId)
-      if (err) setError(err.message)
+      if (err) setError(errMsg(err))
     } else {
       const { data, error: err } = await supabase
         .from('events')
         .insert({ ...payload, created_by: profile.id })
         .select()
         .single()
-      if (err) { setError(err.message); setSaving(false); return }
+      if (err) { setError(errMsg(err)); setSaving(false); return }
       setSelectedId(data.id)
     }
     await loadEvents()

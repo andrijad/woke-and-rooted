@@ -1,3 +1,4 @@
+import { errMsg } from '../../lib/errors'
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../../lib/supabaseClient'
 import { useAuth } from '../../context/AuthContext'
@@ -61,7 +62,7 @@ export default function EventsCard() {
       amount: ev.price,
       status: 'due'
     })
-    if (error) alert('Greška: ' + error.message)
+    if (error) alert('Greška: ' + errMsg(error))
     await load(true)
     setSigningUp(null)
   }
@@ -75,7 +76,7 @@ export default function EventsCard() {
       .eq('member_id', profile.id)
       .eq('status', 'due')
       .select()
-    if (error) alert('Greška: ' + error.message)
+    if (error) alert('Greška: ' + errMsg(error))
     else if (!data || data.length === 0) alert('Prijava nije poništena (možda je uplata već potvrđena ili nedostaje pravilo u bazi).')
     await load(true)
   }

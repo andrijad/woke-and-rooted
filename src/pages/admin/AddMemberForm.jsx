@@ -1,3 +1,4 @@
+import { errMsg } from '../../lib/errors'
 import { useState } from 'react'
 import { supabase } from '../../lib/supabaseClient'
 
@@ -19,7 +20,7 @@ export default function AddMemberForm({ onAdded }) {
       phone: form.phone.trim() || null,
       is_manual: true
     })
-    if (err) setError('Greška: ' + err.message)
+    if (err) setError('Greška: ' + errMsg(err))
     else {
       setForm({ full_name: '', email: '', phone: '' })
       setOpen(false)

@@ -1,3 +1,4 @@
+import { errMsg } from '../../lib/errors'
 import { useState } from 'react'
 import { supabase } from '../../lib/supabaseClient'
 
@@ -26,7 +27,7 @@ export default function MemberEditForm({ member, onSaved, onCancel }) {
       p_email: form.email
     })
     setSaving(false)
-    if (err) setError('Greška: ' + err.message)
+    if (err) setError('Greška: ' + errMsg(err))
     else onSaved()
   }
 

@@ -1,3 +1,4 @@
+import { errMsg } from '../../lib/errors'
 import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabaseClient'
 import { useAuth } from '../../context/AuthContext'
@@ -124,7 +125,7 @@ export default function SignupsOverview() {
         .insert({ group_id: groupId, period, opened_by: profile.id })
       err = error
     }
-    if (err) alert('Greška: ' + err.message)
+    if (err) alert('Greška: ' + errMsg(err))
     await loadGroupsAndPeriods()
     setBusyGroupId(null)
   }
@@ -135,7 +136,7 @@ export default function SignupsOverview() {
       .from('group_signup_periods')
       .update({ is_open: false, closed_at: new Date().toISOString() })
       .eq('id', periodRow.id)
-    if (error) alert('Greška: ' + error.message)
+    if (error) alert('Greška: ' + errMsg(error))
     await loadGroupsAndPeriods()
     setBusyGroupId(null)
   }
@@ -143,28 +144,28 @@ export default function SignupsOverview() {
   async function toggleMonthlyPaid(row) {
     const newStatus = row.status === 'paid' ? 'due' : 'paid'
     const { error } = await supabase.from('monthly_signups').update({ status: newStatus }).eq('id', row.id)
-    if (error) alert('Greška: ' + error.message)
+    if (error) alert('Greška: ' + errMsg(error))
     await loadGroupsAndPeriods()
   }
 
   async function removeMonthly(row) {
     if (!confirm(`Ukloniti prijavu za ${ownerName(row.profiles, 'ovog člana')} (${row.period})?`)) return
     const { error } = await supabase.from('monthly_signups').delete().eq('id', row.id)
-    if (error) alert('Greška: ' + error.message)
+    if (error) alert('Greška: ' + errMsg(error))
     await loadGroupsAndPeriods()
   }
 
   async function removeEventSignup(row) {
     if (!confirm(`Ukloniti prijavu za ${ownerName(row.profiles, 'ovog člana')}?`)) return
     const { error } = await supabase.from('event_signups').delete().eq('id', row.id)
-    if (error) alert('Greška: ' + error.message)
+    if (error) alert('Greška: ' + errMsg(error))
     await loadEvents()
   }
 
   async function toggleEventPaid(row) {
     const newStatus = row.status === 'paid' ? 'due' : 'paid'
     const { error } = await supabase.from('event_signups').update({ status: newStatus }).eq('id', row.id)
-    if (error) alert('Greška: ' + error.message)
+    if (error) alert('Greška: ' + errMsg(error))
     await loadEvents()
   }
 

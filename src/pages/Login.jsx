@@ -1,3 +1,4 @@
+import { errMsg } from '../lib/errors'
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
@@ -14,7 +15,7 @@ export default function Login() {
     e.preventDefault()
     setError('')
     const { error } = await login(email, password)
-    if (error) setError(error.message)
+    if (error) setError(errMsg(error))
     else navigate('/')
   }
 

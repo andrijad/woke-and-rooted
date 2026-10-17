@@ -1,3 +1,4 @@
+import { errMsg } from '../../lib/errors'
 import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabaseClient'
 import { useAuth } from '../../context/AuthContext'
@@ -116,7 +117,7 @@ export default function SignupCard() {
     if (!confirm('Poništiti prijavu?')) return
     const { data, error: err } = await supabase
       .from('monthly_signups').delete().eq('id', signup.id).select()
-    if (err) alert('Greška: ' + err.message)
+    if (err) alert('Greška: ' + errMsg(err))
     else if (!data || data.length === 0) alert('Prijava nije poništena (možda je uplata već potvrđena).')
     await load(true)
   }
