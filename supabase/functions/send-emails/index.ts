@@ -63,7 +63,7 @@ function ipsString(d: Payload): string {
     `I:RSD${amount}`, `SF:${d.purpose_code}`, `RO:${REF_MODEL}${d.ref_code}`].join('|')
 }
 
-const hasPayment = (d: Payload) => Number(d.amount) > 0 && !!d.account_number && !!d.ref_code
+const hasPayment = (d: Payload) => !d.paid && Number(d.amount) > 0 && !!d.account_number && !!d.ref_code
 
 function paymentHtml(d: Payload): string {
   const row = (k: string, v: unknown) =>
@@ -133,10 +133,77 @@ const templates: Record<string, (d: Payload) => Rendered> = {
     ),
     text: `${greeting(d.name)}\n\n${d.owner} te je dodala u ${d.label}.\n` + (hasPayment(d) ? paymentText(d) : '') + `\n${APP_URL}` + textFooter,
   }),
+
+  // ---------- 1 na 1 seanse ----------
+  oneonone_received: (d) => ({
+    subject: 'Upit za 1 na 1 seansu je primljen – Woke & Rooted',
+    html: layout(
+      h1('Upit je primljen') +
+      p(greeting(d.name)) +
+      p(`hvala na upitu za <strong>${esc(d.session_type)}</strong>. ${esc(d.owner)} će ti se javiti da dogovorite termin.`) +
+      p('Status upita možeš da pratiš na linku ispod.') +
+      button('Prati status upita', String(d.status_url))
+    ),
+    text: `${greeting(d.name)}\n\nhvala na upitu za ${d.session_type}. ${d.owner} će ti se javiti da dogovorite termin.\nStatus: ${d.status_url}` + textFooter,
+  }),
+
+  oneonone_scheduled: (d) => sessionMail(d, 'Termin je zakazan', `Termin za 1 na 1 seansu: ${d.when}`,
+    'tvoj termin za 1 na 1 seansu je zakazan.'),
+
+  oneonone_rescheduled: (d) => sessionMail(d, 'Termin je promenjen', `Promenjen termin: ${d.when}`,
+    'termin tvoje 1 na 1 seanse je promenjen. Novi termin je ispod.'),
+
+  oneonone_paid: (d) => ({
+    subject: 'Uplata je potvrđena – Woke & Rooted',
+    html: layout(
+      h1('Uplata je potvrđena') +
+      p(greeting(d.name)) +
+      p(`uplata za 1 na 1 seansu (<strong>${esc(d.session_type)}</strong>) je potvrđena. Vidimo se ${esc(d.when)}.`) +
+      button('Pogledaj termin', String(d.status_url))
+    ),
+    text: `${greeting(d.name)}\n\nuplata za 1 na 1 seansu (${d.session_type}) je potvrđena. Vidimo se ${d.when}.\n${d.status_url}` + textFooter,
+  }),
+
+  oneonone_cancelled: (d) => ({
+    subject: '1 na 1 seansa je otkazana – Woke & Rooted',
+    html: layout(
+      h1('Seansa je otkazana') +
+      p(greeting(d.name)) +
+      p(`1 na 1 seansa (<strong>${esc(d.session_type)}</strong>${d.when ? ', ' + esc(d.when) : ''}) je otkazana.`) +
+      p(`Ako želiš novi termin, pošalji novi upit ili se javi ${esc(d.owner)}.`) +
+      button('Pošalji novi upit', `${APP_URL}/seanse`)
+    ),
+    text: `${greeting(d.name)}\n\n1 na 1 seansa (${d.session_type}${d.when ? ', ' + d.when : ''}) je otkazana.\nNovi upit: ${APP_URL}/seanse` + textFooter,
+  }),
+}
+
+function sessionMail(d: Payload, title: string, subject: string, intro: string): Rendered {
+  const row = (k: string, v: unknown) =>
+    v ? `<tr><td style="padding:4px 0;color:#7a6652;">${k}</td><td style="padding:4px 0;text-align:right;font-weight:bold;">${esc(v)}</td></tr>` : ''
+  const details = `
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:8px 0 4px;">
+          ${row('Seansa', d.session_type)}
+          ${row('Termin', d.when)}
+          ${row('Način', d.mode)}
+          ${row('Cena', d.amount ? `${d.amount} RSD` : '')}
+        </table>`
+  return {
+    subject,
+    html: layout(
+      h1(title) +
+      p(greeting(d.name)) +
+      p(intro) +
+      details +
+      (hasPayment(d) ? paymentHtml(d) : '') +
+      button('Prati status', String(d.status_url))
+    ),
+    text: `${greeting(d.name)}\n\n${intro}\nSeansa: ${d.session_type}\nTermin: ${d.when}\n` +
+      (d.mode ? `Način: ${d.mode}\n` : '') + (hasPayment(d) ? paymentText(d) : '') + `\nStatus: ${d.status_url}` + textFooter,
+  }
 }
 
 // Mejlovi sa podacima za uplatu dobijaju IPS QR kao ugrađenu sliku (cid:ips-qr).
-const WITH_QR = new Set(['signup_created', 'signup_added'])
+const WITH_QR = new Set(['signup_created', 'signup_added', 'oneonone_scheduled', 'oneonone_rescheduled'])
 
 async function sendViaResend(to: string, r: Rendered): Promise<void> {
   const res = await fetch('https://api.resend.com/emails', {
