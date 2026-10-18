@@ -16,6 +16,11 @@ Mejlovi za potvrdu emaila i reset lozinke šalje Supabase Auth (SMTP Resend, ša
 | `email_verified` | email potvrđen (sam ili ručno) | član |
 | `signup_created` | član se sam prijavio na jogu/događaj (i pri registraciji sa grupom) | član, sa IPS QR |
 | `signup_added` | vlasnica dodala člana | član (i ručni), sa IPS QR |
+| `oneonone_received` | novi upit za 1 na 1 | podnosilac (gost ili član), link za status |
+| `oneonone_scheduled` | vlasnica zakazala termin | podnosilac, termin + cena + IPS QR |
+| `oneonone_rescheduled` | promenjen termin | podnosilac (IPS QR ako nije plaćeno) |
+| `oneonone_paid` | potvrđena uplata | samo gost (član dobija notifikaciju) |
+| `oneonone_cancelled` | vlasnica otkazala | podnosilac |
 
 IPS QR se šalje kao ugrađena slika (`cid:ips-qr`, Resend inline attachment).
 
