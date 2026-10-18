@@ -212,7 +212,13 @@ export default function MembersManager() {
                     ? <div className="muted">{m.email}</div>
                     : m.email_verified
                       ? <div className="muted">{m.email} <span className="verified" title="Email je potvrđen">✓</span></div>
-                      : <div className="unverified" title="Član još nije potvrdio email">{m.email} · nije potvrđen</div>)}
+                      : <div className="unverified" title="Član još nije potvrdio email">
+                          {m.email} · nije potvrđen
+                          <div className="row-actions">
+                            <button type="button" onClick={() => rpcAction('admin_confirm_email', { p_id: m.id },
+                              `Ručno potvrditi email ${m.email}? Uradi to samo ako si sigurna da adresa pripada ovom članu.`)}>Potvrdi ručno</button>
+                          </div>
+                        </div>)}
                   {m.email_secondary && <div className="muted">{m.email_secondary}</div>}
                 </td>
                 <td className="small m-groups">
