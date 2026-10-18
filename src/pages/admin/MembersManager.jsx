@@ -180,7 +180,7 @@ export default function MembersManager() {
                   <div className="row-actions">
                     <button type="button" onClick={() => setEditingId(m.id)}>Izmeni</button>
                     {!m.archived && (
-                      <button type="button" onClick={() => openAdd(m, 'group')}>Dodaj u grupu / događaj</button>
+                      <button type="button" onClick={() => openAdd(m, 'group')}>Rasporedi</button>
                     )}
                     {m.archived ? (
                       <>
