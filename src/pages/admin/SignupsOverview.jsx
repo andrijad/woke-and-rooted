@@ -2,7 +2,7 @@ import { errMsg } from '../../lib/errors'
 import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabaseClient'
 import { useAuth } from '../../context/AuthContext'
-import { formatEventDates } from '../../lib/events'
+import { formatEventDates, isPastEvent, todayLocal } from '../../lib/events'
 import { ownerName } from '../../lib/names'
 
 function nextMonthValue() {
@@ -23,6 +23,29 @@ function monthLabel(period) {
   return t.charAt(0).toUpperCase() + t.slice(1)
 }
 
+function SignupTable({ rows, onPaid, onRemove }) {
+  return (
+    <div className="scroll-x"><table>
+      <tbody>
+        {rows.map(r => (
+          <tr key={r.id}>
+            <td>{ownerName(r.profiles)}{r.added_by_admin && ' (dodala vlasnica)'}</td>
+            <td className="small muted">Poziv: <span className="strong">{r.ref_code}</span></td>
+            <td>
+              <button className={r.status === 'paid' ? 'btn-sm' : 'btn-ghost btn-sm'} onClick={() => onPaid(r)}>
+                {r.status === 'paid' ? '✓ Plaćeno' : 'Potvrdi uplatu'}
+              </button>
+            </td>
+            <td>
+              <button className="btn-danger btn-sm" onClick={() => onRemove(r)}>Ukloni</button>
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table></div>
+  )
+}
+
 export default function SignupsOverview() {
   const { profile } = useAuth()
   const [loading, setLoading] = useState(true)
@@ -30,13 +53,13 @@ export default function SignupsOverview() {
 
   const [groups, setGroups] = useState([])
   const [periodsByGroup, setPeriodsByGroup] = useState({})
-  const [signupsByGroup, setSignupsByGroup] = useState({})
+  const [allMonthly, setAllMonthly] = useState([])
   const [monthInputByGroup, setMonthInputByGroup] = useState({})
-  const [showArchivedGroups, setShowArchivedGroups] = useState(false)
+  const [showInactiveGroups, setShowInactiveGroups] = useState(false)
 
   const [events, setEvents] = useState([])
-  const [eventSignups, setEventSignups] = useState({})
-  const [showArchivedEvents, setShowArchivedEvents] = useState(false)
+  const [eventSignups, setEventSignups] = useState([])
+  const [showInactiveEvents, setShowInactiveEvents] = useState(false)
 
   useEffect(() => { init() }, [])
 
@@ -51,14 +74,10 @@ export default function SignupsOverview() {
     const { data: groupsData } = await supabase.from('groups').select('*').order('name')
     const list = groupsData || []
     setGroups(list)
-    if (list.length === 0) return
-
-    const ids = list.map(g => g.id)
     const [{ data: periodsData }, { data: signupsData }] = await Promise.all([
-      supabase.from('group_signup_periods').select('*').in('group_id', ids).order('period', { ascending: false }),
+      supabase.from('group_signup_periods').select('*').order('period', { ascending: false }),
       supabase.from('monthly_signups')
-        .select('id, group_id, period, amount, status, ref_code, profiles(full_name, nickname)')
-        .in('group_id', ids)
+        .select('id, group_id, group_name, period, status, ref_code, profiles(full_name, nickname)')
         .order('period', { ascending: false })
     ])
 
@@ -69,12 +88,7 @@ export default function SignupsOverview() {
     }
     setPeriodsByGroup(periodsMap)
 
-    const signupsMap = {}
-    for (const s of signupsData || []) {
-      if (!signupsMap[s.group_id]) signupsMap[s.group_id] = []
-      signupsMap[s.group_id].push(s)
-    }
-    setSignupsByGroup(signupsMap)
+    setAllMonthly(signupsData || [])
 
     setMonthInputByGroup(prev => {
       const next = { ...prev }
@@ -87,18 +101,10 @@ export default function SignupsOverview() {
     const { data } = await supabase.from('events').select('*').order('date_from', { ascending: false })
     const list = data || []
     setEvents(list)
-    if (list.length > 0) {
-      const { data: signupsData } = await supabase
-        .from('event_signups')
-        .select('id, event_id, amount, status, ref_code, added_by_admin, profiles(full_name, nickname)')
-        .in('event_id', list.map(e => e.id))
-      const grouped = {}
-      for (const s of signupsData || []) {
-        if (!grouped[s.event_id]) grouped[s.event_id] = []
-        grouped[s.event_id].push(s)
-      }
-      setEventSignups(grouped)
-    }
+    const { data: signupsData } = await supabase
+      .from('event_signups')
+      .select('id, event_id, event_name, event_date_from, event_date_to, status, ref_code, added_by_admin, profiles(full_name, nickname)')
+    setEventSignups(signupsData || [])
   }
 
   async function openGroupPeriod(groupId) {
@@ -172,9 +178,23 @@ export default function SignupsOverview() {
   if (loading) return <p className="muted">Učitavanje...</p>
 
   const thisMonth = currentMonthStart()
+  const today = todayLocal()
+  const groupsById = Object.fromEntries(groups.map(g => [g.id, g]))
+  const eventsById = Object.fromEntries(events.map(ev => [ev.id, ev]))
+
+  const signupsByGroup = {}
+  const oldMonthly = []
+  for (const r of allMonthly) {
+    if (r.group_id && groupsById[r.group_id] && r.period >= thisMonth) {
+      if (!signupsByGroup[r.group_id]) signupsByGroup[r.group_id] = []
+      signupsByGroup[r.group_id].push(r)
+    } else {
+      oldMonthly.push(r)
+    }
+  }
 
   const visibleGroups = groups
-    .filter(g => showArchivedGroups || !g.archived)
+    .filter(g => showInactiveGroups || g.active)
     .slice()
     .sort((a, b) => {
       const oa = (periodsByGroup[a.id] || []).some(p => p.is_open) ? 0 : 1
@@ -183,16 +203,46 @@ export default function SignupsOverview() {
       return a.name.localeCompare(b.name)
     })
 
-  const visibleEvents = events.filter(ev => showArchivedEvents || !ev.archived)
+  const upcomingEvents = events
+    .filter(ev => !isPastEvent(ev, today) && (showInactiveEvents || ev.active))
+    .slice()
+    .sort((a, b) => (a.date_from < b.date_from ? -1 : 1))
+
+  // Evidencija: prethodni meseci (po mesecu pa po grupi) i prethodni događaji (uključujući obrisane)
+  const monthsMap = {}
+  for (const r of oldMonthly) {
+    const g = r.group_id && groupsById[r.group_id]
+    const label = (g && g.name) || r.group_name || 'Obrisana grupa'
+    const key = r.group_id || `del:${label}`
+    if (!monthsMap[r.period]) monthsMap[r.period] = {}
+    if (!monthsMap[r.period][key]) monthsMap[r.period][key] = { label, rows: [] }
+    monthsMap[r.period][key].rows.push(r)
+  }
+  const oldPeriods = Object.keys(monthsMap).sort().reverse()
+
+  const pastEventsMap = {}
+  for (const sg of eventSignups) {
+    const ev = sg.event_id && eventsById[sg.event_id]
+    const info = ev
+      ? { name: ev.name, date_from: ev.date_from, date_to: ev.date_to }
+      : { name: sg.event_name || 'Obrisan događaj', date_from: sg.event_date_from, date_to: sg.event_date_to }
+    if (!isPastEvent(info, today)) continue
+    const key = sg.event_id || `del:${info.name}:${info.date_from}`
+    if (!pastEventsMap[key]) pastEventsMap[key] = { info, rows: [] }
+    pastEventsMap[key].rows.push(sg)
+  }
+  // prošli događaji bez prijava se ne prikazuju u evidenciji
+  const pastEventList = Object.values(pastEventsMap).sort((a, b) => ((a.info.date_from || '') < (b.info.date_from || '') ? 1 : -1))
+  const paidCount = list => list.filter(x => x.status === 'paid').length
 
   return (
     <div>
       <div className="section-title"><img src="/brand/yoga.svg" alt="" /><h3>Redovna joga</h3></div>
       <label className="check small mb">
-        <input type="checkbox" checked={showArchivedGroups} onChange={e => setShowArchivedGroups(e.target.checked)} /> Prikaži arhivirane grupe
+        <input type="checkbox" checked={showInactiveGroups} onChange={e => setShowInactiveGroups(e.target.checked)} /> Prikaži neaktivne grupe
       </label>
 
-      {visibleGroups.length === 0 && <p className="small muted">Nema grupa.</p>}
+      {visibleGroups.length === 0 && <p className="small muted">Nema aktivnih grupa.</p>}
 
       {visibleGroups.map(g => {
         const periods = periodsByGroup[g.id] || []
@@ -206,44 +256,22 @@ export default function SignupsOverview() {
         }
         const stats = period => {
           const list = byPeriod[period] || []
-          return { list, total: list.length, paid: list.filter(r => r.status === 'paid').length }
+          return { list, total: list.length, paid: paidCount(list) }
         }
         const capText = total => (g.capacity != null ? `${total}/${g.capacity}` : `${total}`)
 
-        // periodi koji se prikazuju u glavnom delu: tekući + otvoreni + budući sa prijavama
-        const mainSet = new Set([thisMonth, ...openPeriods.map(p => p.period)])
-        for (const per of Object.keys(byPeriod)) if (per >= thisMonth) mainSet.add(per)
+        // periodi koji se prikazuju: tekući + otvoreni + budući sa prijavama
+        const mainSet = new Set([thisMonth, ...openPeriods.filter(p => p.period >= thisMonth).map(p => p.period)])
+        for (const per of Object.keys(byPeriod)) mainSet.add(per)
         const mainPeriods = [...mainSet].sort().reverse()
-        const olderPeriods = Object.keys(byPeriod).filter(per => !mainSet.has(per)).sort().reverse()
-
-        const renderTable = list => (
-          <div className="scroll-x"><table>
-            <tbody>
-              {list.map(r => (
-                <tr key={r.id}>
-                  <td>{ownerName(r.profiles)}</td>
-                  <td>{r.amount} RSD</td>
-                  <td className="small muted">Poziv: <span className="strong">{r.ref_code}</span></td>
-                  <td>
-                    <button className={r.status === 'paid' ? 'btn-sm' : 'btn-ghost btn-sm'} onClick={() => toggleMonthlyPaid(r)}>
-                      {r.status === 'paid' ? '✓ Plaćeno' : 'Potvrdi uplatu'}
-                    </button>
-                  </td>
-                  <td>
-                    <button className="btn-danger btn-sm" onClick={() => removeMonthly(r)}>Ukloni</button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table></div>
-        )
 
         return (
           <div key={g.id} className="card">
             <h4>
               {g.name}
-              {g.archived && <span className="badge" style={{ marginLeft: 8 }}>arhivirano</span>}
+              {!g.active && <span className="badge" style={{ marginLeft: 8 }}>neaktivno</span>}
             </h4>
+            <p className="small muted">{g.monthly_price} RSD mesečno</p>
 
             {/* Prijave: koji su meseci otvoreni */}
             <div className="notice mb">
@@ -268,7 +296,6 @@ export default function SignupsOverview() {
               </div>
             </div>
 
-            {/* Tekući i otvoreni meseci */}
             {mainPeriods.map(per => {
               const st = stats(per)
               const isCurrent = per === thisMonth
@@ -285,76 +312,74 @@ export default function SignupsOverview() {
                   </p>
                   {st.total === 0
                     ? <p className="small muted" style={{ margin: 0 }}>Još nema prijava.</p>
-                    : renderTable(st.list)}
+                    : <SignupTable rows={st.list} onPaid={toggleMonthlyPaid} onRemove={removeMonthly} />}
                 </div>
               )
             })}
-
-            {olderPeriods.length > 0 && (
-              <details>
-                <summary>Ranije ({olderPeriods.length})</summary>
-                {olderPeriods.map(per => {
-                  const st = stats(per)
-                  return (
-                    <div key={per} className="mt">
-                      <p className="small strong" style={{ margin: '0 0 4px' }}>
-                        {monthLabel(per)} <span className="muted" style={{ fontWeight: 400 }}>· {st.total} prijavljeno · {st.paid} plaćeno</span>
-                      </p>
-                      {renderTable(st.list)}
-                    </div>
-                  )
-                })}
-              </details>
-            )}
           </div>
         )
       })}
 
       <div className="section-title section"><img src="/brand/cocoa.svg" alt="" /><h3>Događaji</h3></div>
       <label className="check small mb">
-        <input type="checkbox" checked={showArchivedEvents} onChange={e => setShowArchivedEvents(e.target.checked)} /> Prikaži arhivirane
+        <input type="checkbox" checked={showInactiveEvents} onChange={e => setShowInactiveEvents(e.target.checked)} /> Prikaži neaktivne događaje
       </label>
 
-      {visibleEvents.length === 0 && <p className="small muted">Nema događaja.</p>}
+      {upcomingEvents.length === 0 && <p className="small muted">Nema predstojećih događaja.</p>}
 
-      {visibleEvents.map(ev => {
-        const signups = eventSignups[ev.id] || []
+      {upcomingEvents.map(ev => {
+        const signups = eventSignups.filter(x => x.event_id === ev.id)
         return (
           <div key={ev.id} className="card">
             <h4 style={{ marginBottom: 4 }}>
               {ev.name}
-              {!ev.published && <span className="badge clay" style={{ marginLeft: 8 }}>nacrt</span>}
-              {ev.archived && <span className="badge" style={{ marginLeft: 8 }}>arhivirano</span>}
+              {!ev.active && <span className="badge" style={{ marginLeft: 8 }}>neaktivno</span>}
             </h4>
             <p className="small muted">
               {formatEventDates(ev)} · {ev.price} RSD
               {ev.capacity != null && ` · ${signups.length}/${ev.capacity} prijavljeno`}
             </p>
             {signups.length === 0 && <p className="small muted">Još nema prijava.</p>}
-            {signups.length > 0 && (
-              <div className="scroll-x"><table>
-                <tbody>
-                  {signups.map(s => (
-                    <tr key={s.id}>
-                      <td>{ownerName(s.profiles)}{s.added_by_admin && ' (dodala vlasnica)'}</td>
-                      <td>{s.amount} RSD</td>
-                      <td className="small muted">Poziv: <span className="strong">{s.ref_code}</span></td>
-                      <td>
-                        <button className={s.status === 'paid' ? 'btn-sm' : 'btn-ghost btn-sm'} onClick={() => toggleEventPaid(s)}>
-                          {s.status === 'paid' ? '✓ Plaćeno' : 'Potvrdi uplatu'}
-                        </button>
-                      </td>
-                      <td>
-                        <button className="btn-danger btn-sm" onClick={() => removeEventSignup(s)}>Ukloni</button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table></div>
-            )}
+            {signups.length > 0 && <SignupTable rows={signups} onPaid={toggleEventPaid} onRemove={removeEventSignup} />}
           </div>
         )
       })}
+
+      <div className="section-title section"><h3>Evidencija prethodnih termina</h3></div>
+      <p className="small muted">Svi prošli meseci joge i prošli događaji (i obrisani) sa prijavama. Ovde možeš da potvrdiš uplatu ili ukloniš prijavu zbog ispravke.</p>
+
+      <details className="card">
+        <summary>Prethodni meseci joge ({oldPeriods.length})</summary>
+        {oldPeriods.length === 0 && <p className="small muted mt">Nema evidencije.</p>}
+        {oldPeriods.map(per => (
+          <div key={per} className="mt">
+            <p className="strong" style={{ margin: '0 0 4px' }}>{monthLabel(per)}</p>
+            {Object.values(monthsMap[per]).sort((a, b) => a.label.localeCompare(b.label)).map(grp => (
+              <div key={grp.label} className="mb">
+                <p className="small" style={{ margin: '0 0 4px' }}>
+                  <span className="strong">{grp.label}</span>
+                  <span className="muted"> · {grp.rows.length} prijavljeno · {paidCount(grp.rows)} plaćeno</span>
+                </p>
+                <SignupTable rows={grp.rows} onPaid={toggleMonthlyPaid} onRemove={removeMonthly} />
+              </div>
+            ))}
+          </div>
+        ))}
+      </details>
+
+      <details className="card">
+        <summary>Prethodni događaji ({pastEventList.length})</summary>
+        {pastEventList.length === 0 && <p className="small muted mt">Nema evidencije.</p>}
+        {pastEventList.map(({ info, rows }) => (
+          <div key={rows[0].event_id || `${info.name}${info.date_from}`} className="mt">
+            <p className="small" style={{ margin: '0 0 4px' }}>
+              <span className="strong">{info.name}</span>
+              <span className="muted"> · {formatEventDates(info)} · {rows.length} prijavljeno · {paidCount(rows)} plaćeno</span>
+            </p>
+            <SignupTable rows={rows} onPaid={toggleEventPaid} onRemove={removeEventSignup} />
+          </div>
+        ))}
+      </details>
     </div>
   )
 }

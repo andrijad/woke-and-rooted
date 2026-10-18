@@ -25,8 +25,8 @@ export default function OneOnOneCard() {
       const startOfToday = new Date(); startOfToday.setHours(0, 0, 0, 0)
       // prikazujemo aktivne upite i buduće plaćene termine
       setRows((data || []).filter(r =>
-        r.status === 'new' || r.status === 'scheduled' ||
-        (r.status === 'paid' && r.scheduled_at && new Date(r.scheduled_at) >= startOfToday)
+        r.status === 'new' ||
+        ((r.status === 'scheduled' || r.status === 'paid') && r.scheduled_at && new Date(r.scheduled_at) >= startOfToday)
       ))
       setSettings(settingsData || null)
     }

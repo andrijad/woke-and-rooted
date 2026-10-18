@@ -3,26 +3,28 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabaseClient'
 import { useAuth } from '../../context/AuthContext'
 import RichTextEditor from '../../components/RichTextEditor'
-import { formatEventDates } from '../../lib/events'
+import { formatEventDates, isPastEvent, todayLocal } from '../../lib/events'
 
 const BLANK = {
   name: '', description_short: '', description_html: '',
-  price: '', capacity: '', published: true, archived: false,
+  price: '', capacity: '', active: true,
   mode: 'single',
   date_single: '', date_from: '', date_to: '',
   has_time: true, start_time: '18:00', end_time: '19:00'
 }
 
-export default function EventsManager() {
+export default function EventsManager({ past = false, draft = null, onDraftUsed, onDuplicate }) {
   const { profile } = useAuth()
   const [events, setEvents] = useState([])
   const [selectedId, setSelectedId] = useState(null)
-  const [form, setForm] = useState(BLANK)
+  const [form, setForm] = useState(draft || BLANK)
+  const [note, setNote] = useState(draft ? 'Kopija: postavi datum i uključi „Aktivno“ kad je događaj spreman.' : '')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
   useEffect(() => { loadEvents() }, [])
+  useEffect(() => { if (draft && onDraftUsed) onDraftUsed() }, [draft, onDraftUsed])
 
   async function loadEvents() {
     setLoading(true)
@@ -34,6 +36,7 @@ export default function EventsManager() {
   async function selectEvent(id) {
     setSelectedId(id)
     setError('')
+    setNote('')
     if (!id) { setForm(BLANK); return }
     const ev = events.find(e => e.id === id)
     setForm({
@@ -42,8 +45,7 @@ export default function EventsManager() {
       description_html: ev.description_html || '',
       price: ev.price,
       capacity: ev.capacity ?? '',
-      published: ev.published,
-      archived: ev.archived,
+      active: ev.active,
       mode: ev.date_to ? 'multi' : 'single',
       date_single: ev.date_to ? '' : ev.date_from,
       date_from: ev.date_to ? ev.date_from : '',
@@ -56,13 +58,11 @@ export default function EventsManager() {
 
   async function deleteEvent() {
     const ev = events.find(x => x.id === selectedId)
-    if (!ev?.archived) return
-    if (!confirm(`Trajno obrisati događaj „${ev.name}"? Ovo se ne može poništiti.`)) return
+    if (!ev) return
+    if (!confirm(`Trajno obrisati događaj „${ev.name}"? Evidencija prijava ostaje u tabu „Termini i uplate".`)) return
     const { data, error: err } = await supabase.from('events').delete().eq('id', selectedId).select()
     if (err) {
-      setError(err.code === '23503'
-        ? 'Događaj ima prijave pa ne može da se obriše. Prvo ukloni prijave u tabu „Termini i uplate".'
-        : 'Greška: ' + errMsg(err))
+      setError('Greška: ' + errMsg(err))
     } else if (!data || data.length === 0) {
       setError('Događaj nije obrisan.')
     } else {
@@ -85,8 +85,7 @@ export default function EventsManager() {
       description_html: form.description_html,
       price: Number(form.price),
       capacity: form.capacity === '' ? null : Number(form.capacity),
-      published: form.published,
-      archived: form.archived,
+      active: form.active,
       date_from: form.mode === 'single' ? form.date_single : form.date_from,
       date_to: form.mode === 'single' ? null : form.date_to,
       start_time: form.has_time ? form.start_time : null,
@@ -109,23 +108,40 @@ export default function EventsManager() {
     setSaving(false)
   }
 
+  const today = todayLocal()
+  const shown = events
+    .filter(ev => (past ? isPastEvent(ev, today) : !isPastEvent(ev, today)))
+    .sort((a, b) => (past ? (a.date_from < b.date_from ? 1 : -1) : (a.date_from < b.date_from ? -1 : 1)))
+
+  function duplicate() {
+    const copy = { ...form, name: `DUPLIKAT – ${form.name}`, active: false, date_single: '', date_from: '', date_to: '' }
+    if (past) { onDuplicate && onDuplicate(copy); return }
+    setSelectedId(null)
+    setForm(copy)
+    setNote('Kopija: postavi datum i uključi „Aktivno“ kad je događaj spreman.')
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
   if (loading) return <p className="muted">Učitavanje...</p>
 
   return (
     <div>
       <div className="row mb">
         <select value={selectedId || ''} onChange={e => selectEvent(e.target.value || null)}>
-          <option value="">— Novi događaj —</option>
-          {events.map(ev => (
+          {!past && <option value="">— Novi događaj —</option>}
+          {past && <option value="">— Izaberi događaj —</option>}
+          {shown.map(ev => (
             <option key={ev.id} value={ev.id}>
               {ev.name} · {formatEventDates(ev)}
-              {!ev.published && ' (nacrt)'}
-              {ev.archived && ' (arhivirano)'}
+              {!past && !ev.active && ' (neaktivno)'}
             </option>
           ))}
         </select>
       </div>
 
+      {note && <p className="notice small">{note}</p>}
+      {past && !selectedId && <p className="muted small">Izaberi prethodni događaj da ga vidiš, kopiraš ili obrišeš.</p>}
+      {(!past || selectedId) && (
       <form onSubmit={handleSave}>
         <input className="field" placeholder="Naziv događaja" value={form.name}
           onChange={e => setForm({ ...form, name: e.target.value })} required />
@@ -176,15 +192,12 @@ export default function EventsManager() {
           </div>
         )}
 
-        <label className="check">
-          <input type="checkbox" checked={form.published}
-            onChange={e => setForm({ ...form, published: e.target.checked })} /> Objavljeno (vidljivo članovima)
-        </label>
-
-        <label className="check">
-          <input type="checkbox" checked={form.archived}
-            onChange={e => setForm({ ...form, archived: e.target.checked })} /> Arhivirano (sakriveno od članova, ti i dalje vidiš)
-        </label>
+        {!past && (
+          <label className="check">
+            <input type="checkbox" checked={form.active}
+              onChange={e => setForm({ ...form, active: e.target.checked })} /> Aktivno (vidljivo članovima)
+          </label>
+        )}
 
         <p className="small strong mt">Dug opis (opciono)</p>
         <RichTextEditor
@@ -197,10 +210,14 @@ export default function EventsManager() {
         <button type="submit" className="mt" disabled={saving}>
           {selectedId ? 'Sačuvaj izmene' : 'Napravi događaj'}
         </button>
-        {selectedId && events.find(x => x.id === selectedId)?.archived && (
+        {selectedId && (
+          <button type="button" className="btn-ghost mt" onClick={duplicate}>Kopiraj događaj</button>
+        )}
+        {selectedId && (past || events.find(x => x.id === selectedId)?.active === false) && (
           <button type="button" className="btn-danger mt" onClick={deleteEvent}>Obriši trajno</button>
         )}
       </form>
+      )}
 
       <p className="small muted mt">
         Spiskovi prijavljenih članova i statusi uplata za ovaj događaj su u tabu „Termini i uplate".

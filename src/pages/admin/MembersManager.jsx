@@ -1,7 +1,7 @@
 import { errMsg } from '../../lib/errors'
 import { Fragment, useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabaseClient'
-import { formatEventDates } from '../../lib/events'
+import { formatEventDates, isPastEvent } from '../../lib/events'
 import AddMemberForm from './AddMemberForm'
 import MemberEditForm from './MemberEditForm'
 import { ownerName } from '../../lib/names'
@@ -40,16 +40,16 @@ export default function MembersManager() {
     setLoading(true)
     const [{ data: groupsData }, { data: profilesData }, { data: monthlyData }, { data: eventsData }] =
       await Promise.all([
-        supabase.from('groups').select('*').eq('archived', false).order('name'),
+        supabase.from('groups').select('*').eq('active', true).order('name'),
         supabase.from('profiles').select('*').eq('is_admin', false).order('full_name'),
         supabase.from('monthly_signups')
           .select('member_id, period, status, ref_code, groups(name)')
           .gte('period', monthStart())
           .order('period'),
-        supabase.from('events').select('*').eq('archived', false).order('date_from', { ascending: false })
+        supabase.from('events').select('*').eq('active', true).order('date_from', { ascending: false })
       ])
     setGroups(groupsData || [])
-    setEvents(eventsData || [])
+    setEvents((eventsData || []).filter(ev => !isPastEvent(ev)))
     const byMember = {}
     for (const r of monthlyData || []) {
       if (!byMember[r.member_id]) byMember[r.member_id] = []

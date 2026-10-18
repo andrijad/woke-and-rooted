@@ -52,7 +52,7 @@ export default function SignupCard() {
     // periodi u kojima je član već prijavljen se ne nude ponovo
     const signedPeriods = new Set(signups.map(s => s.period))
     const offerRows = (openData || []).filter(r =>
-      !signedPeriods.has(r.period) && r.groups && r.groups.active && !r.groups.archived
+      !signedPeriods.has(r.period) && r.groups && r.groups.active
     )
 
     const offersByPeriod = {}

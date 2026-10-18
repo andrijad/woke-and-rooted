@@ -10,7 +10,7 @@ Aplikacija za studio joge (vlasnica = admin; članovi = korisnici). Vite + React
 
 ## Struktura
 - `src/pages/Login|ForgotPassword|ResetPassword.jsx` — prijava i reset lozinke
-- `src/pages/AdminHome.jsx` — tabovi: **Članovi** (MembersManager), **Grupe i događaji** (GroupsAndEvents → GroupsManager / EventsManager, samo definicije), **Termini i uplate** (SignupsOverview, prijave + potvrda uplate)
+- `src/pages/AdminHome.jsx` — tabovi: **Članovi** (MembersManager), **Grupe i događaji** (GroupsAndEvents → GroupsManager / EventsManager (predstojeći) / EventsManager `past` (prethodni), samo definicije), **Termini i uplate** (SignupsOverview, prijave + potvrda uplate)
 - `src/pages/MemberHome.jsx` — SignupCard (redovna joga), EventsCard (događaji/radionice)
 - `src/pages/OneOnOneForm.jsx` (`/seanse`, javno) i `OneOnOneStatus.jsx` (`/seanse/status/:token`, javno) — upit za 1 na 1 seanse; `admin/OneOnOneManager.jsx` (tab „1 na 1 seanse“); `member/OneOnOneCard.jsx`
 - `src/lib/` — `ips.js` (IPS QR + pozivi na broj), `schedule.js` (termini grupa), `events.js`, `useRefreshOnFocus.js`, `supabaseClient.js`
@@ -18,12 +18,13 @@ Aplikacija za studio joge (vlasnica = admin; članovi = korisnici). Vite + React
 
 ## Model podataka (ukratko)
 - `profiles` (id, full_name, nickname, phone, email, email_secondary, is_admin, is_manual). `nickname` vidi/menja samo vlasnica (trigger `protect_profile_owner_fields`); ako postoji, koristi se u članovom interfejsu (`displayName` u `src/lib/names.js`), a vlasnica vidi „Ime (nadimak)“ (`ownerName`). Vlasnica menja podatke preko RPC `admin_update_member` (email za prijavu samo kod `is_manual`; `email_secondary` je samo kontakt). `is_manual = true` → član bez naloga, kojeg vodi vlasnica (id nije u auth.users).
-- `groups` (monthly_price, capacity, active, archived) + `group_schedule` (dani/vreme).
+- `groups` (monthly_price, capacity, **active**; `archived` je samo odraz `not active` preko triggera `sync_group_flags`, 032) + `group_schedule` (dani/vreme).
 - `group_signup_periods` — vlasnica otvara/zatvara prijave **po grupi i mesecu** (period = prvi dan meseca).
 - `monthly_signups` — jedna grupa po članu po mesecu (unique index na member_id+period). Članovi sami biraju grupu iz otvorenih.
 - `one_on_one_requests` — upiti za 1 na 1 seanse (gost ili član; statusi new → scheduled → paid / cancelled; gost prati status preko `access_token` kroz RPC `get_one_on_one_status`; poziv na broj se dodeljuje pri zakazivanju; cena u `studio_settings.session_price`). Mejlovi još ne postoje.
-- `event_signups` — jednokratni događaji (individualni časovi/`dropin_signups` uklonjeni u 023); `events` (capacity, archived, published).
+- `event_signups` — jednokratni događaji (individualni časovi/`dropin_signups` uklonjeni u 023); `events` (capacity, **active**; `published`/`archived` se održavaju triggerom `sync_event_flags`, ne koristiti u UI). **Aktivno** = vidljivo članovima i u listi izmene; neaktivno vlasnica i dalje vidi i može da obriše. Događaj je „prošao“ od dana posle `coalesce(date_to, date_from)` (`isPastEvent` u `lib/events.js`): nestaje iz članovog prikaza, vlasnica ga vidi u „Prethodni događaji“.
 - Dodela članova grupama (`group_memberships`, `admin_set_member_group`) je uklonjena u 019 — članovi sami biraju grupu iz otvorenih prijava.
+- **Evidencija i istorija (032)**: brisanje grupe/događaja ne briše prijave (`ON DELETE SET NULL`, trigger snima `group_name` / `event_name`, `event_date_from/to` u prijavu). Član vidi „Istoriju“ (`member/HistoryCard`: joga, radionice, 1 na 1; prazne kategorije se kriju); RLS dozvoljava članu da čita događaje na koje je bio prijavljen. Vlasnica u „Termini i uplate“ ima „Evidenciju prethodnih termina“ (prošli meseci joge i prošli događaji, uključujući obrisane) sa potvrdom uplate i uklanjanjem. Iznos se prikazuje samo u zaglavlju grupe/događaja. Događaji imaju „Kopiraj događaj“ (ime `DUPLIKAT – …`, bez datuma, neaktivno).
 - Statusi uplate: `due` → `paid`; potvrđuje samo vlasnica.
 
 ## Registracija
@@ -47,7 +48,7 @@ Aplikacija za studio joge (vlasnica = admin; članovi = korisnici). Vite + React
 - **Datumi**: nikad `toISOString()` za lokalne datume (UTC pomera dan). Koristiti `getFullYear/getMonth/getDate` sa padStart.
 - Član može da poništi prijavu samo dok je `status = 'due'` (RLS politika `*_delete_own_due`).
 - Kapacitet: pun termin/grupa → dugme "Prijavi se" zamenjuje "Grupa je popunjena".
-- Arhivirano (`archived`) se ne prikazuje članovima; vlasnica ih vidi preko checkbox-a.
+- Neaktivno (`active = false`) se ne prikazuje članovima; vlasnica ih vidi preko checkbox-a u „Termini i uplate“.
 - Ažuriranje prikaza: `useRefreshOnFocus` (refetch na fokus prozora), nije realtime.
 
 ## Radni tok
