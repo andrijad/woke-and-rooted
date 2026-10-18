@@ -93,9 +93,10 @@ export default function EventsManager({ past = false, draft = null, onDraftUsed,
       end_time: form.has_time ? form.end_time : null
     }
 
+    let newId = null
     if (selectedId) {
       const { error: err } = await supabase.from('events').update(payload).eq('id', selectedId)
-      if (err) setError(errMsg(err))
+      if (err) { setError(errMsg(err)); setSaving(false); return }
     } else {
       const { data, error: err } = await supabase
         .from('events')
@@ -103,12 +104,30 @@ export default function EventsManager({ past = false, draft = null, onDraftUsed,
         .select()
         .single()
       if (err) { setError(errMsg(err)); setSaving(false); return }
+      newId = data.id
       setSelectedId(data.id)
     }
+    const savedId = selectedId || newId
+    const wasActive = !!(selectedId && current?.active)
     await loadEvents()
     setSaving(false)
+    // Upravo postao aktivan (nov ili uključeno „Aktivno“), predstojeći i još nije najavljen → ponudi obaveštenje
+    if (payload.active && !wasActive && !announcedAt && savedId && !isPastEvent(payload)) {
+      if (confirm(`Poslati svim članovima obaveštenje (notifikacija i mejl) o događaju „${payload.name}“?`)) {
+        await announce(savedId)
+      }
+    }
   }
 
+  async function announce(id) {
+    const { data, error: err } = await supabase.rpc('admin_announce_event', { p_event_id: id })
+    if (err) { setError('Obaveštenje nije poslato: ' + errMsg(err)); return }
+    setNote(`Obaveštenje je poslato (${data} mejlova ide u narednih nekoliko minuta).`)
+    await loadEvents()
+  }
+
+  const current = events.find(x => x.id === selectedId)
+  const announcedAt = current?.announced_at || null
   const today = todayLocal()
   const shown = events
     .filter(ev => (past ? isPastEvent(ev, today) : !isPastEvent(ev, today)))
@@ -213,6 +232,15 @@ export default function EventsManager({ past = false, draft = null, onDraftUsed,
         </button>
         {selectedId && (
           <button type="button" className="btn-ghost mt" onClick={duplicate}>Kopiraj događaj</button>
+        )}
+        {selectedId && !past && current?.active && !announcedAt && (
+          <button type="button" className="btn-ghost mt"
+            onClick={() => confirm(`Poslati svim članovima obaveštenje o događaju „${current.name}“?`) && announce(selectedId)}>
+            Obavesti članove
+          </button>
+        )}
+        {selectedId && announcedAt && (
+          <p className="xs muted mt">Članovi su obavešteni {new Date(announcedAt).toLocaleDateString('sr-Latn-RS')}.</p>
         )}
         {selectedId && (past || events.find(x => x.id === selectedId)?.active === false) && (
           <button type="button" className="btn-danger mt" onClick={deleteEvent}>Obriši trajno</button>

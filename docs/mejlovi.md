@@ -21,6 +21,10 @@ Mejlovi za potvrdu emaila i reset lozinke šalje Supabase Auth (SMTP Resend, ša
 | `oneonone_rescheduled` | promenjen termin | podnosilac (IPS QR ako nije plaćeno) |
 | `oneonone_paid` | potvrđena uplata | samo gost (član dobija notifikaciju) |
 | `oneonone_cancelled` | vlasnica otkazala | podnosilac |
+| `month_open` | vlasnica: „Obavesti da su prijave otvorene“ (Termini i uplate) | svi članovi (i ručni), osim arhiviranih i odjavljenih |
+| `event_announce` | vlasnica: najava događaja (pitanje pri prvom čuvanju aktivnog događaja ili dugme „Obavesti članove“; jednom po događaju) | isto |
+
+Masovni mejlovi imaju link za odjavu (`/odjava/:token`, `profiles.email_opt_out`) i `List-Unsubscribe` zaglavlje. Odjavljeni i dalje dobijaju notifikacije u aplikaciji i mejlove o svojim prijavama. Poslato se beleži u `announcements`.
 
 IPS QR se šalje kao ugrađena slika (`cid:ips-qr`, Resend inline attachment).
 
