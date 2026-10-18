@@ -1,5 +1,14 @@
 -- 035: Notifikacije u aplikaciji (zvonce). Pročitano = obrisano, bez istorije.
 
+-- Stara tabela notifications iz 001 (tip/naslov za sve članove) nikad nije korišćena u aplikaciji — zamenjuje se.
+do $$
+begin
+  if exists (select 1 from information_schema.columns
+             where table_schema = 'public' and table_name = 'notifications' and column_name = 'created_by') then
+    drop table public.notifications cascade;
+  end if;
+end $$;
+
 create table if not exists public.notifications (
   id bigserial primary key,
   user_id uuid not null references public.profiles(id) on delete cascade,
