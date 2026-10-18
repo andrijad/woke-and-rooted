@@ -4,6 +4,8 @@ import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import SiteLink from '../components/SiteLink'
+import Turnstile from '../components/Turnstile'
+import { TURNSTILE_SITE_KEY } from '../lib/turnstile'
 
 export default function Login() {
   const { login } = useAuth()
@@ -11,12 +13,15 @@ export default function Login() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
+  const [captcha, setCaptcha] = useState('')
+  const [captchaKey, setCaptchaKey] = useState(0)
 
   async function handleSubmit(e) {
     e.preventDefault()
     setError('')
-    const { error } = await login(email, password)
-    if (error) setError(errMsg(error))
+    if (TURNSTILE_SITE_KEY && !captcha) return setError('Sačekaj da se završi provera „Nisam robot“.')
+    const { error } = await login(email, password, captcha)
+    if (error) { setError(errMsg(error)); setCaptcha(''); setCaptchaKey(k => k + 1) }
     else navigate('/')
   }
 
@@ -34,6 +39,7 @@ export default function Login() {
             className="field" type="password" placeholder="Lozinka" autoComplete="current-password" value={password}
             onChange={e => setPassword(e.target.value)}
           />
+          <Turnstile onToken={setCaptcha} resetKey={captchaKey} />
           {error && <p className="error">{error}</p>}
           <button type="submit">Prijavi se</button>
         </form>

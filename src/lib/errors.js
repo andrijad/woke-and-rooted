@@ -1,5 +1,6 @@
 // Prevodi poruke grešaka (Supabase Auth / Postgres) na srpski.
 const RULES = [
+  [/captcha/i, 'Provera „Nisam robot“ nije uspela. Sačekaj da se završi pa pokušaj ponovo.'],
   [/invalid login credentials/i, 'Pogrešan email ili lozinka.'],
   [/email not confirmed/i, 'Email adresa još nije potvrđena. Klikni na link u mejlu koji smo ti poslali.'],
   [/user already registered|already been registered/i, 'Nalog sa ovim emailom već postoji. Probaj prijavu ili reset lozinke.'],

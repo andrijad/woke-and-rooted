@@ -39,8 +39,8 @@ export function AuthProvider({ children }) {
     setLoading(false)
   }
 
-  async function login(email, password) {
-    return supabase.auth.signInWithPassword({ email, password })
+  async function login(email, password, captchaToken) {
+    return supabase.auth.signInWithPassword({ email, password, options: captchaToken ? { captchaToken } : undefined })
   }
 
   async function logout() {
