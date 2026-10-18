@@ -565,3 +565,57 @@ table.members td { vertical-align: top; }
 
 .history-list { margin: 4px 0 0; padding-left: 18px; }
 .history-list li { margin-bottom: 2px; }
+
+/* ---------- Notifikacije (zvonce) ---------- */
+
+.topbar-actions { display: flex; align-items: center; gap: 10px; }
+.bell {
+  position: relative;
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 42px; height: 42px; padding: 0;
+  border-radius: 999px;
+  background: transparent;
+  border: 1px solid var(--line);
+  color: var(--muted);
+  opacity: 0.55;
+  cursor: default;
+}
+.bell:hover:not(:disabled) { background: transparent; border-color: var(--line); }
+.bell.has { opacity: 1; color: var(--moss); border-color: var(--moss); cursor: pointer; }
+.bell.has:hover:not(:disabled) { border-color: var(--moss); background: var(--moss-wash); }
+.bell-count {
+  position: absolute; top: -5px; right: -5px;
+  min-width: 20px; height: 20px; padding: 0 5px;
+  border-radius: 999px;
+  background: var(--clay); color: #fff;
+  font-size: 0.75rem; font-weight: 700; line-height: 20px; text-align: center;
+}
+.notif-title { margin: 0 0 12px; }
+.notif-list { list-style: none; margin: 0; padding: 0; }
+.notif-list li + li { margin-top: 8px; }
+.notif {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
+  width: 100%; text-align: left;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--clay);
+  background: var(--field);
+  color: var(--bark);
+  font-weight: 400;
+}
+.notif:hover:not(:disabled) { border-color: var(--line); border-left-color: var(--clay); background: var(--straw-wash); color: var(--bark); }
+.notif.is-read { border-left-color: var(--line); opacity: 0.55; }
+.notif-body { font-size: 0.9375rem; line-height: 1.4; }
+.notif-time { font-size: 0.8125rem; color: var(--muted); }
+
+@media (max-width: 600px) {
+  dialog.notif-modal {
+    width: 100vw; max-width: 100vw;
+    max-height: 85vh;
+    margin: auto 0 0;
+    border-radius: 22px 22px 0 0;
+  }
+  dialog.notif-modal .modal-body { max-height: calc(85vh - 80px); }
+}
+.notif.is-read:hover:not(:disabled) { border-left-color: var(--line); }

@@ -66,6 +66,7 @@ Aplikacija za studio joge (vlasnica = admin; članovi = korisnici). Vite + React
 ## Mejlovi i notifikacije
 - Mejlovi aplikacije: red `email_outbox` → pg_cron → Edge funkcija `send-emails` → Resend (`noreply@wokeandrooted.com`). Detalji i podešavanje u `docs/mejlovi.md`. Novi mejl = šablon u Edge funkciji + `enqueue_email(...)` u triggeru. Edge funkcija se deploy-uje ručno iz Supabase Dashboard-a.
 - Auth mejlovi (potvrda, reset lozinke): Supabase SMTP preko Resend-a, šabloni u `supabase/email-templates/` (ručno se ubacuju u Supabase).
+- Notifikacije u aplikaciji: tabela `notifications` (035), RLS: svako čita/briše samo svoje; upis samo iz baze (`notify_user(id, tekst)`, `notify_admins(tekst)`; ručni članovi ih ne dobijaju). Pročitano = obrisano. UI: `components/NotificationBell.jsx` u topbar-u (osvežava na fokus i na 60 s).
 - Ton mejlova: „ti“ (kao u aplikaciji). Vlasnica se u porukama potpisuje nadimkom iz profila (Maja).
 
 ## Odloženo / na redu

@@ -1,4 +1,5 @@
 import { displayName } from '../lib/names'
+import NotificationBell from '../components/NotificationBell'
 import { useAuth } from '../context/AuthContext'
 import SiteLink from '../components/SiteLink'
 import SignupCard from './member/SignupCard'
@@ -12,7 +13,10 @@ export default function MemberHome() {
     <div className="shell">
       <header className="topbar">
         <img className="logo" src="/brand/logo-brown.svg" alt="Woke & Rooted" />
-        <button className="btn-ghost btn-sm" onClick={logout}>Izloguj se</button>
+        <div className="topbar-actions">
+          <NotificationBell />
+          <button className="btn-ghost btn-sm" onClick={logout}>Izloguj se</button>
+        </div>
       </header>
       <div className="greeting">
         <h1>Zdravo, {displayName(profile, 'članice')}</h1>

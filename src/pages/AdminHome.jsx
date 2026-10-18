@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import NotificationBell from '../components/NotificationBell'
 import { useAuth } from '../context/AuthContext'
 import SiteLink from '../components/SiteLink'
 import MembersManager from './admin/MembersManager'
@@ -21,7 +22,10 @@ export default function AdminHome() {
     <div className="shell wide">
       <header className="topbar">
         <img className="logo" src="/brand/logo-brown.svg" alt="Woke & Rooted" />
-        <button className="btn-ghost" onClick={logout}>Izloguj se</button>
+        <div className="topbar-actions">
+          <NotificationBell />
+          <button className="btn-ghost" onClick={logout}>Izloguj se</button>
+        </div>
       </header>
       <div className="greeting">
         <h1>Zdravo, {profile?.full_name || 'vlasnice'}</h1>
