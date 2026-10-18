@@ -140,7 +140,7 @@ export default function EventsManager({ past = false, draft = null, onDraftUsed,
         </select>
       </div>
 
-      {note && <p className="notice small">{note}</p>}
+      {note && !selectedId && <p className="notice small">{note}</p>}
       {past && !selectedId && <p className="muted small">Izaberi prethodni događaj da ga vidiš, kopiraš ili obrišeš.</p>}
       {(!past || selectedId) && (
       <form onSubmit={handleSave}>
