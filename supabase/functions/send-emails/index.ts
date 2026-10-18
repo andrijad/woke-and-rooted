@@ -3,6 +3,7 @@
 // Secrets (Supabase → Edge Functions → Secrets): RESEND_API_KEY, CRON_SECRET.
 // SUPABASE_URL i SUPABASE_SERVICE_ROLE_KEY Supabase daje automatski.
 import { createClient } from 'npm:@supabase/supabase-js@2'
+import QRCode from 'npm:qrcode@1.5.4'
 
 const FROM = 'Woke & Rooted <noreply@wokeandrooted.com>'
 const APP_URL = 'https://prijave.wokeandrooted.com'
@@ -10,7 +11,8 @@ const SITE_URL = 'https://wokeandrooted.com'
 const INSTAGRAM_URL = 'https://www.instagram.com/woke.and.rooted'
 
 type Payload = Record<string, unknown>
-type Rendered = { subject: string; html: string; text: string }
+type Attachment = { filename: string; content: string; content_type: string; content_id: string }
+type Rendered = { subject: string; html: string; text: string; attachments?: Attachment[] }
 
 function esc(v: unknown): string {
   return String(v ?? '')
@@ -52,6 +54,45 @@ const button = (label: string, href: string) =>
   `<p style="margin:24px 0;text-align:center;"><a href="${href}" style="display:inline-block;background:#4a5c36;color:#ffffff;text-decoration:none;font-weight:bold;padding:12px 24px;border-radius:6px;">${label}</a></p>`
 const greeting = (name: unknown) => (name ? `Zdravo ${esc(name)},` : 'Zdravo,')
 
+// ---------- uplata (IPS QR + podaci) ----------
+const REF_MODEL = '99'
+
+function ipsString(d: Payload): string {
+  const amount = Number(d.amount).toFixed(2).replace('.', ',')
+  return ['K:PR', 'V:01', 'C:1', `R:${d.account_number}`, `N:${d.recipient_name}`,
+    `I:RSD${amount}`, `SF:${d.purpose_code}`, `RO:${REF_MODEL}${d.ref_code}`].join('|')
+}
+
+const hasPayment = (d: Payload) => Number(d.amount) > 0 && !!d.account_number && !!d.ref_code
+
+function paymentHtml(d: Payload): string {
+  const row = (k: string, v: unknown) =>
+    `<tr><td style="padding:6px 0;color:#7a6652;font-size:14px;">${k}</td><td style="padding:6px 0;text-align:right;font-weight:bold;font-size:14px;">${esc(v)}</td></tr>`
+  return `
+        <div style="margin:20px 0;padding:16px;border:1px solid #e3d6b4;border-radius:8px;background:#fffdf6;">
+          <p style="margin:0 0 10px;font-weight:bold;">Podaci za uplatu</p>
+          <p style="margin:0 0 12px;text-align:center;"><img src="cid:ips-qr" width="200" height="200" alt="IPS QR kod za uplatu" style="display:inline-block;border:0;"></p>
+          <p style="margin:0 0 12px;font-size:13px;color:#7a6652;text-align:center;">Skeniraj QR kod u aplikaciji svoje banke (IPS skeniraj) ili uplati ručno:</p>
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+            ${row('Primalac', d.recipient_name)}
+            ${row('Račun', d.account_number)}
+            ${row('Iznos', `${d.amount} RSD`)}
+            ${row('Šifra plaćanja', d.purpose_code)}
+            ${row('Model', REF_MODEL)}
+            ${row('Poziv na broj', d.ref_code)}
+          </table>
+        </div>`
+}
+
+function paymentText(d: Payload): string {
+  return `\nPodaci za uplatu:\nPrimalac: ${d.recipient_name}\nRačun: ${d.account_number}\nIznos: ${d.amount} RSD\nŠifra plaćanja: ${d.purpose_code}\nModel: ${REF_MODEL}\nPoziv na broj: ${d.ref_code}\n`
+}
+
+async function qrAttachment(d: Payload): Promise<Attachment> {
+  const dataUrl: string = await QRCode.toDataURL(ipsString(d), { margin: 1, width: 400 })
+  return { filename: 'ips-qr.png', content: dataUrl.split(',')[1], content_type: 'image/png', content_id: 'ips-qr' }
+}
+
 const textFooter = `\n\n—\nWoke & Rooted\n${SITE_URL} · ${APP_URL} · ${INSTAGRAM_URL}\nMolimo ne odgovarajte na ovaj mejl.`
 
 // ---------- šabloni po vrsti mejla ----------
@@ -66,7 +107,36 @@ const templates: Record<string, (d: Payload) => Rendered> = {
     ),
     text: `${greeting(d.name)}\n\ntvoja email adresa je uspešno potvrđena. Sada možeš da se prijaviš u aplikaciju: ${APP_URL}` + textFooter,
   }),
+
+  signup_created: (d) => ({
+    subject: `Prijava: ${d.label}`,
+    html: layout(
+      h1('Prijava je primljena') +
+      p(greeting(d.name)) +
+      p(`tvoja prijava za <strong>${esc(d.label)}</strong> je primljena.` +
+        (hasPayment(d) ? ' Podaci za uplatu su ispod. Kad ' + esc(d.owner) + ' potvrdi uplatu, videćeš to u aplikaciji.' : '')) +
+      (hasPayment(d) ? paymentHtml(d) : '') +
+      button('Otvori aplikaciju', APP_URL)
+    ),
+    text: `${greeting(d.name)}\n\ntvoja prijava za ${d.label} je primljena.\n` + (hasPayment(d) ? paymentText(d) : '') + `\n${APP_URL}` + textFooter,
+  }),
+
+  signup_added: (d) => ({
+    subject: `${d.owner} te je dodala u ${d.label}`,
+    html: layout(
+      h1('Nova prijava') +
+      p(greeting(d.name)) +
+      p(`${esc(d.owner)} te je dodala u <strong>${esc(d.label)}</strong>.` +
+        (hasPayment(d) ? ' Podaci za uplatu su ispod.' : '')) +
+      (hasPayment(d) ? paymentHtml(d) : '') +
+      button('Otvori aplikaciju', APP_URL)
+    ),
+    text: `${greeting(d.name)}\n\n${d.owner} te je dodala u ${d.label}.\n` + (hasPayment(d) ? paymentText(d) : '') + `\n${APP_URL}` + textFooter,
+  }),
 }
+
+// Mejlovi sa podacima za uplatu dobijaju IPS QR kao ugrađenu sliku (cid:ips-qr).
+const WITH_QR = new Set(['signup_created', 'signup_added'])
 
 async function sendViaResend(to: string, r: Rendered): Promise<void> {
   const res = await fetch('https://api.resend.com/emails', {
@@ -75,7 +145,7 @@ async function sendViaResend(to: string, r: Rendered): Promise<void> {
       Authorization: `Bearer ${Deno.env.get('RESEND_API_KEY')}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ from: FROM, to: [to], subject: r.subject, html: r.html, text: r.text }),
+    body: JSON.stringify({ from: FROM, to: [to], subject: r.subject, html: r.html, text: r.text, attachments: r.attachments }),
   })
   if (!res.ok) throw new Error(`Resend ${res.status}: ${await res.text()}`)
 }
@@ -99,7 +169,10 @@ Deno.serve(async (req) => {
     try {
       const tpl = templates[row.kind]
       if (!tpl) throw new Error(`Nepoznata vrsta mejla: ${row.kind}`)
-      await sendViaResend(row.to_email, tpl(row.payload ?? {}))
+      const payload = row.payload ?? {}
+      const rendered = tpl(payload)
+      if (WITH_QR.has(row.kind) && hasPayment(payload)) rendered.attachments = [await qrAttachment(payload)]
+      await sendViaResend(row.to_email, rendered)
       await db.rpc('finish_email', { p_id: row.id, p_ok: true })
       sent++
     } catch (e) {
