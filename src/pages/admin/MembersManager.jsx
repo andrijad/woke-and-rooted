@@ -24,6 +24,7 @@ export default function MembersManager() {
   const [events, setEvents] = useState([])
   const [loading, setLoading] = useState(true)
   const [editingId, setEditingId] = useState(null)
+  const [showArchived, setShowArchived] = useState(false)
   const [addFor, setAddFor] = useState(null) // { id, kind: 'group' | 'event' }
   const [monthlyForm, setMonthlyForm] = useState({ member_id: '', group_id: '', month: monthStart().slice(0, 7) })
   const [monthlySaving, setMonthlySaving] = useState(false)
@@ -58,14 +59,15 @@ export default function MembersManager() {
     setLoading(false)
   }
 
-  async function removeMember(m) {
-    if (!confirm(`Ukloniti člana ${m.full_name} iz evidencije?`)) return
-    const { data, error } = await supabase.from('profiles').delete().eq('id', m.id).select()
-    if (error) {
-      alert(error.code === '23503'
-        ? 'Član ima prijave. Prvo ukloni njegove prijave u tabu „Termini i uplate".'
-        : 'Greška: ' + errMsg(error))
-    } else if (!data || data.length === 0) alert('Član nije uklonjen (samo ručno dodati članovi mogu da se uklone).')
+  async function deleteMember(m) {
+    if (!confirm(`Trajno obrisati ${m.full_name}? Ovo se ne može poništiti.`)) return
+    let { error } = await supabase.rpc('admin_delete_account', { p_id: m.id, p_with_signups: false })
+    if (error && /ima prijave/i.test(error.message)) {
+      const n = error.message.match(/\((\d+)\)/)?.[1] || ''
+      if (!confirm(`${m.full_name} ima prijave${n ? ` (${n})` : ''}. Obrisati i njih? Ovo se ne može poništiti.`)) return
+      ;({ error } = await supabase.rpc('admin_delete_account', { p_id: m.id, p_with_signups: true }))
+    }
+    if (error) alert('Greška: ' + errMsg(error))
     await load()
   }
 
@@ -142,6 +144,11 @@ export default function MembersManager() {
     <div>
       <h3>Članovi</h3>
       <AddMemberForm onAdded={load} />
+      {members.some(m => m.archived) && (
+        <label className="check mb">
+          <input type="checkbox" checked={showArchived} onChange={e => setShowArchived(e.target.checked)} /> Prikaži arhivirane
+        </label>
+      )}
       {members.length === 0 && <p className="muted">Nema još registrovanih članova.</p>}
       {members.length > 0 && (
         <div className="scroll-x"><table className="members">
@@ -153,7 +160,7 @@ export default function MembersManager() {
             </tr>
           </thead>
           <tbody>
-            {members.map(m => editingId === m.id ? (
+            {members.filter(m => showArchived || !m.archived).map(m => editingId === m.id ? (
               <tr key={m.id}>
                 <td colSpan={3}>
                   <div className="m-sticky">
@@ -168,17 +175,21 @@ export default function MembersManager() {
                 <td className="m-name">
                   <strong>{ownerName(m, '(bez imena)')}</strong>
                   {m.is_manual && <span className="badge" style={{ marginLeft: 6 }}>bez naloga</span>}
+                  {m.archived && <span className="badge" style={{ marginLeft: 6 }}>arhiviran</span>}
                   {m.is_new && <span className="badge badge-new" style={{ marginLeft: 6 }}>nov član</span>}
                   <div className="row-actions">
                     <button type="button" onClick={() => setEditingId(m.id)}>Izmeni</button>
-                    <button type="button" aria-label="Dodaj u grupu ili na događaj" title="Dodaj u grupu ili na događaj"
-                      onClick={() => openAdd(m, 'group')}>+</button>
-                    {m.is_manual ? (
-                      <button type="button" className="danger" onClick={() => removeMember(m)}>Ukloni</button>
+                    {!m.archived && (
+                      <button type="button" onClick={() => openAdd(m, 'group')}>Dodaj u grupu / događaj</button>
+                    )}
+                    {m.archived ? (
+                      <>
+                        <button type="button" onClick={() => rpcAction('admin_set_member_archived', { p_id: m.id, p_archived: false })}>Vrati</button>
+                        <button type="button" className="danger" onClick={() => deleteMember(m)}>Obriši trajno</button>
+                      </>
                     ) : (
                       <button type="button" className="danger"
-                        onClick={() => rpcAction('admin_delete_account', { p_id: m.id },
-                          `Obrisati nalog ${m.full_name}? Ovo se ne može poništiti.`)}>Obriši nalog</button>
+                        onClick={() => rpcAction('admin_set_member_archived', { p_id: m.id, p_archived: true })}>Arhiviraj</button>
                     )}
                   </div>
                   {m.merge_candidate_id && (() => {
