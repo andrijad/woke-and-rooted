@@ -9,3 +9,14 @@ export function formatEventDates(ev) {
   const toLabel = new Date(ev.date_to + 'T00:00:00').toLocaleDateString('sr-Latn-RS', { day: 'numeric', month: 'short' })
   return `${fromLabel} — ${toLabel}`
 }
+
+// Lokalni datum (ne toISOString: UTC pomera dan).
+export function todayLocal() {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+// Događaj je prošao od narednog dana posle poslednjeg dana (kraj višednevnog, inače datum događaja).
+export function isPastEvent(ev, today = todayLocal()) {
+  return (ev.date_to || ev.date_from) < today
+}

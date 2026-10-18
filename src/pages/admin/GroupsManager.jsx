@@ -15,7 +15,7 @@ const WEEKDAYS = [
 
 const BLANK = {
   name: '', monthly_price: '', capacity: '',
-  description_short: '', description_html: '', archived: false
+  description_short: '', description_html: '', active: true
 }
 
 export default function GroupsManager() {
@@ -46,7 +46,7 @@ export default function GroupsManager() {
       capacity: group.capacity ?? '',
       description_short: group.description_short || '',
       description_html: group.description_html || '',
-      archived: group.archived
+      active: group.active
     })
     const { data } = await supabase.from('group_schedule').select('*').eq('group_id', id).order('weekday')
     setSchedule(data || [])
@@ -61,13 +61,13 @@ export default function GroupsManager() {
       capacity: form.capacity === '' ? null : Number(form.capacity),
       description_short: form.description_short,
       description_html: form.description_html,
-      archived: form.archived
+      active: form.active
     }
     if (selectedId) {
       const { error } = await supabase.from('groups').update(payload).eq('id', selectedId)
       if (error) alert('Greška: ' + errMsg(error))
     } else {
-      const { data, error } = await supabase.from('groups').insert({ ...payload, active: true }).select().single()
+      const { data, error } = await supabase.from('groups').insert(payload).select().single()
       if (error) { alert('Greška: ' + errMsg(error)); setSaving(false); return }
       setSelectedId(data.id)
     }
@@ -77,13 +77,11 @@ export default function GroupsManager() {
 
   async function deleteGroup() {
     const g = groups.find(x => x.id === selectedId)
-    if (!g?.archived) return
-    if (!confirm(`Trajno obrisati grupu „${g.name}"? Ovo se ne može poništiti.`)) return
+    if (!g || g.active) return
+    if (!confirm(`Trajno obrisati grupu „${g.name}"? Evidencija prijava ostaje u tabu „Termini i uplate".`)) return
     const { data, error } = await supabase.from('groups').delete().eq('id', selectedId).select()
     if (error) {
-      alert(error.code === '23503'
-        ? 'Grupa ima prijave pa ne može da se obriše. Prvo ukloni prijave u tabu „Termini i uplate".'
-        : 'Greška: ' + errMsg(error))
+      alert('Greška: ' + errMsg(error))
     } else if (!data || data.length === 0) {
       alert('Grupa nije obrisana.')
     } else {
@@ -117,7 +115,7 @@ export default function GroupsManager() {
         <select value={selectedId || ''} onChange={e => selectGroup(e.target.value || null)}>
           <option value="">— Nova grupa —</option>
           {groups.map(g => (
-            <option key={g.id} value={g.id}>{g.name}{g.archived && ' (arhivirano)'}</option>
+            <option key={g.id} value={g.id}>{g.name}{!g.active && ' (neaktivno)'}</option>
           ))}
         </select>
       </div>
@@ -135,8 +133,8 @@ export default function GroupsManager() {
           onChange={e => setForm({ ...form, description_short: e.target.value })} />
 
         <label className="check">
-          <input type="checkbox" checked={form.archived}
-            onChange={e => setForm({ ...form, archived: e.target.checked })} /> Arhivirano (sakriveno od članova, ti i dalje vidiš)
+          <input type="checkbox" checked={form.active}
+            onChange={e => setForm({ ...form, active: e.target.checked })} /> Aktivno (vidljivo članovima)
         </label>
 
         <p className="small strong mt">Pun opis</p>
@@ -148,7 +146,7 @@ export default function GroupsManager() {
         <button type="submit" className="mt" disabled={saving}>
           {selectedId ? 'Sačuvaj izmene' : 'Napravi grupu'}
         </button>
-        {selectedId && groups.find(x => x.id === selectedId)?.archived && (
+        {selectedId && groups.find(x => x.id === selectedId)?.active === false && (
           <button type="button" className="btn-danger mt" onClick={deleteGroup}>Obriši trajno</button>
         )}
       </form>

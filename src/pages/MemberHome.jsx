@@ -4,6 +4,7 @@ import SiteLink from '../components/SiteLink'
 import SignupCard from './member/SignupCard'
 import EventsCard from './member/EventsCard'
 import OneOnOneCard from './member/OneOnOneCard'
+import HistoryCard from './member/HistoryCard'
 
 export default function MemberHome() {
   const { profile, logout } = useAuth()
@@ -19,6 +20,7 @@ export default function MemberHome() {
       <SignupCard />
       <EventsCard />
       <OneOnOneCard />
+      <HistoryCard />
       <SiteLink />
     </div>
   )

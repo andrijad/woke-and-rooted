@@ -562,3 +562,6 @@ table.members td { vertical-align: top; }
 .row-actions button:first-child { margin-left: 0; }
 .site-link a + a { margin-left: 14px; }
 .m-sticky { position: sticky; left: 0; max-width: calc(100vw - 48px); }
+
+.history-list { margin: 4px 0 0; padding-left: 18px; }
+.history-list li { margin-bottom: 2px; }

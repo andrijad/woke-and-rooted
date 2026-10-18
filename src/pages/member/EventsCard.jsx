@@ -4,7 +4,7 @@ import { supabase } from '../../lib/supabaseClient'
 import { useAuth } from '../../context/AuthContext'
 import { sanitizeHtml, hasText } from '../../lib/sanitize'
 import PaymentDetails from './PaymentDetails'
-import { formatEventDates } from '../../lib/events'
+import { formatEventDates, isPastEvent } from '../../lib/events'
 import { useRefreshOnFocus } from '../../lib/useRefreshOnFocus'
 
 export default function EventsCard() {
@@ -23,10 +23,10 @@ export default function EventsCard() {
   async function load(silent = false) {
     if (!silent) setLoading(true)
     const [{ data: eventsData }, { data: settingsData }] = await Promise.all([
-      supabase.from('events').select('*').eq('published', true).eq('archived', false).order('date_from'),
+      supabase.from('events').select('*').eq('active', true).order('date_from'),
       supabase.from('studio_settings').select('*').eq('id', 1).single()
     ])
-    const list = eventsData || []
+    const list = (eventsData || []).filter(ev => !isPastEvent(ev))
     setEvents(list)
 
     if (list.length > 0) {
