@@ -8,6 +8,7 @@ import ResetPassword from './pages/ResetPassword'
 import Home from './pages/Home'
 import OneOnOneForm from './pages/OneOnOneForm'
 import OneOnOneStatus from './pages/OneOnOneStatus'
+import Unsubscribe from './pages/Unsubscribe'
 
 export default function App() {
   return (
@@ -21,6 +22,7 @@ export default function App() {
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/seanse" element={<OneOnOneForm />} />
           <Route path="/seanse/status/:token" element={<OneOnOneStatus />} />
+          <Route path="/odjava/:token" element={<Unsubscribe />} />
           <Route path="/" element={
             <ProtectedRoute><Home /></ProtectedRoute>
           } />

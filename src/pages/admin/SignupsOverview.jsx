@@ -46,6 +46,75 @@ function SignupTable({ rows, onPaid, onRemove }) {
   )
 }
 
+// Masovno obaveštenje: „prijave za MESEC su otvorene“ (notifikacija + mejl svim članovima).
+function AnnounceMonth({ groups, periodsByGroup }) {
+  const [sent, setSent] = useState({})
+  const [choice, setChoice] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [msg, setMsg] = useState('')
+  const [tick, setTick] = useState(0)
+
+  useEffect(() => {
+    let cancelled = false
+    async function load() {
+      const { data } = await supabase.from('announcements').select('ref, sent_at, recipients')
+        .eq('kind', 'month_open').order('sent_at', { ascending: false })
+      if (cancelled) return
+      const map = {}
+      for (const a of data || []) if (!map[a.ref]) map[a.ref] = a
+      setSent(map)
+    }
+    load()
+    return () => { cancelled = true }
+  }, [tick])
+
+  const thisMonth = currentMonthStart()
+  const activeIds = new Set(groups.filter(g => g.active).map(g => g.id))
+  const months = [...new Set(Object.entries(periodsByGroup)
+    .filter(([gid]) => activeIds.has(gid))
+    .flatMap(([, list]) => list.filter(pr => pr.is_open && pr.period >= thisMonth).map(pr => pr.period)))].sort()
+  const selected = choice && months.includes(choice) ? choice : months[0] || ''
+
+  async function send() {
+    if (!selected) return
+    const prev = sent[selected]
+    const q = prev
+      ? `Obaveštenje za ${monthLabel(selected)} je već poslato ${new Date(prev.sent_at).toLocaleDateString('sr-Latn-RS')}. Poslati ponovo svim članovima?`
+      : `Poslati svim članovima obaveštenje (notifikacija i mejl) da su prijave za ${monthLabel(selected)} otvorene?`
+    if (!confirm(q)) return
+    setBusy(true); setMsg('')
+    const { data, error } = await supabase.rpc('admin_announce_month', { p_period: selected })
+    setBusy(false)
+    if (error) { setMsg('Greška: ' + errMsg(error)); return }
+    setMsg(`Poslato. Mejl ide ka ${data} članova (u narednih nekoliko minuta).`)
+    setTick(t => t + 1)
+  }
+
+  return (
+    <div className="notice mb">
+      <p className="small strong" style={{ margin: '0 0 6px' }}>Obavesti članove</p>
+      {months.length === 0 ? (
+        <p className="small muted" style={{ margin: 0 }}>Kad otvoriš prijave za neki mesec, ovde možeš da obavestiš sve članove.</p>
+      ) : (
+        <>
+          <div className="row">
+            <select value={selected} onChange={e => setChoice(e.target.value)}>
+              {months.map(m => <option key={m} value={m}>{monthLabel(m)}</option>)}
+            </select>
+            <button onClick={send} disabled={busy}>Obavesti da su prijave otvorene</button>
+          </div>
+          {sent[selected] && (
+            <p className="xs muted" style={{ margin: '6px 0 0' }}>
+              Već poslato {new Date(sent[selected].sent_at).toLocaleDateString('sr-Latn-RS')} ({sent[selected].recipients} mejlova).
+            </p>
+          )}
+        </>
+      )}
+      {msg && <p className="small" style={{ margin: '6px 0 0' }}>{msg}</p>}
+    </div>
+  )
+}
+
 export default function SignupsOverview() {
   const { profile } = useAuth()
   const [loading, setLoading] = useState(true)
@@ -238,6 +307,7 @@ export default function SignupsOverview() {
   return (
     <div>
       <div className="section-title"><img src="/brand/yoga.svg" alt="" /><h3>Redovna joga</h3></div>
+      <AnnounceMonth groups={groups} periodsByGroup={periodsByGroup} />
       <label className="check small mb">
         <input type="checkbox" checked={showInactiveGroups} onChange={e => setShowInactiveGroups(e.target.checked)} /> Prikaži neaktivne grupe
       </label>

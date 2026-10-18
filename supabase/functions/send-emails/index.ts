@@ -12,7 +12,7 @@ const INSTAGRAM_URL = 'https://www.instagram.com/woke.and.rooted'
 
 type Payload = Record<string, unknown>
 type Attachment = { filename: string; content: string; content_type: string; content_id: string }
-type Rendered = { subject: string; html: string; text: string; attachments?: Attachment[] }
+type Rendered = { subject: string; html: string; text: string; attachments?: Attachment[]; unsubscribe?: string }
 
 function esc(v: unknown): string {
   return String(v ?? '')
@@ -21,7 +21,7 @@ function esc(v: unknown): string {
 }
 
 // ---------- zajednički izgled (isti kao šabloni u supabase/email-templates) ----------
-function layout(content: string): string {
+function layout(content: string, unsubscribeUrl?: unknown): string {
   return `<!doctype html>
 <html lang="sr">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Woke &amp; Rooted</title></head>
@@ -39,7 +39,8 @@ ${content}
         <a href="${SITE_URL}" style="color:#4a5c36;">wokeandrooted.com</a> &nbsp;·&nbsp;
         <a href="${APP_URL}" style="color:#4a5c36;">Aplikacija za prijave</a> &nbsp;·&nbsp;
         <a href="${INSTAGRAM_URL}" style="color:#4a5c36;">Instagram</a>
-        <p style="margin:8px 0 0;font-size:11px;font-style:italic;color:#9a8670;">Molimo ne odgovarajte na ovaj mejl.</p>
+        <p style="margin:8px 0 0;font-size:11px;font-style:italic;color:#9a8670;">Molimo ne odgovarajte na ovaj mejl.</p>${unsubscribeUrl ? `
+        <p style="margin:6px 0 0;font-size:11px;color:#9a8670;"><a href="${esc(unsubscribeUrl)}" style="color:#9a8670;">Ne želim obaveštenja o novim terminima</a></p>` : ''}
       </td></tr>
     </table>
   </td></tr>
@@ -53,6 +54,24 @@ const p = (t: string) => `<p style="margin:0 0 12px;">${t}</p>`
 const button = (label: string, href: string) =>
   `<p style="margin:24px 0;text-align:center;"><a href="${href}" style="display:inline-block;background:#4a5c36;color:#ffffff;text-decoration:none;font-weight:bold;padding:12px 24px;border-radius:6px;">${label}</a></p>`
 const greeting = (name: unknown) => (name ? `Zdravo ${esc(name)},` : 'Zdravo,')
+
+// ---------- HTML opisa događaja (iz editora) — samo dozvoljene oznake ----------
+const ALLOWED = new Set(['p', 'br', 'strong', 'b', 'em', 'i', 'u', 'ul', 'ol', 'li', 'h2', 'h3', 'h4', 'blockquote', 'a'])
+function sanitize(html: unknown): string {
+  return String(html ?? '')
+    .replace(/<(script|style|iframe|object|embed)[\s\S]*?<\/\1>/gi, '')
+    .replace(/<!--[\s\S]*?-->/g, '')
+    .replace(/<\/?([a-z0-9]+)([^>]*)>/gi, (m, tag: string, attrs: string) => {
+      const t = tag.toLowerCase()
+      if (!ALLOWED.has(t)) return ''
+      if (m.startsWith('</')) return `</${t}>`
+      if (t === 'a') {
+        const href = /href\s*=\s*"(https?:\/\/[^"]*)"/i.exec(attrs)?.[1]
+        return href ? `<a href="${esc(href)}" style="color:#4a5c36;">` : '<a>'
+      }
+      return `<${t}>`
+    })
+}
 
 // ---------- uplata (IPS QR + podaci) ----------
 const REF_MODEL = '99'
@@ -134,6 +153,48 @@ const templates: Record<string, (d: Payload) => Rendered> = {
     text: `${greeting(d.name)}\n\n${d.owner} te je dodala u ${d.label}.\n` + (hasPayment(d) ? paymentText(d) : '') + `\n${APP_URL}` + textFooter,
   }),
 
+  // ---------- masovna obaveštenja ----------
+  month_open: (d) => {
+    const groups = (Array.isArray(d.groups) ? d.groups : []) as Payload[]
+    const list = groups.map((g) =>
+      `<li style="margin:0 0 6px;"><strong>${esc(g.name)}</strong>${g.schedule ? ' – ' + esc(g.schedule) : ''}${g.price ? ` <span style="color:#7a6652;">(${esc(g.price)} RSD mesečno)</span>` : ''}</li>`).join('')
+    return {
+      subject: `Otvorene su prijave za jogu – ${d.month}`,
+      html: layout(
+        h1(`Prijave za ${esc(d.month)} su otvorene`) +
+        p(greeting(d.name)) +
+        p(`otvorene su prijave za redovnu jogu za <strong>${esc(d.month)}</strong>.`) +
+        (list ? `<ul style="margin:0 0 12px;padding-left:20px;">${list}</ul>` : '') +
+        p('Prijavi se u aplikaciji dok ima mesta.') +
+        button('Prijavi se', APP_URL),
+        d.unsubscribe_url
+      ),
+      text: `${greeting(d.name)}\n\notvorene su prijave za redovnu jogu za ${d.month}.\n` +
+        groups.map((g) => `- ${g.name}${g.schedule ? ' – ' + g.schedule : ''}${g.price ? ` (${g.price} RSD)` : ''}`).join('\n') +
+        `\n\nPrijava: ${APP_URL}` + textFooter + `\nOdjava od obaveštenja: ${d.unsubscribe_url}`,
+      unsubscribe: String(d.unsubscribe_url ?? ''),
+    }
+  },
+
+  event_announce: (d) => ({
+    subject: `Pozivamo te na ${d.event_name}`,
+    html: layout(
+      h1(esc(d.event_name)) +
+      p(greeting(d.name)) +
+      (d.description_short ? p(esc(d.description_short)) : '') +
+      `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:8px 0 16px;">
+          <tr><td style="padding:4px 0;color:#7a6652;">Kada</td><td style="padding:4px 0;text-align:right;font-weight:bold;">${esc(d.when)}</td></tr>
+          <tr><td style="padding:4px 0;color:#7a6652;">Cena</td><td style="padding:4px 0;text-align:right;font-weight:bold;">${esc(d.price)} RSD</td></tr>
+        </table>` +
+      (d.description_html ? `<div style="margin:0 0 12px;">${sanitize(d.description_html)}</div>` : '') +
+      button('Prijavi se', APP_URL),
+      d.unsubscribe_url
+    ),
+    text: `${greeting(d.name)}\n\n${d.event_name}\n${d.description_short ?? ''}\nKada: ${d.when}\nCena: ${d.price} RSD\n\nPrijava: ${APP_URL}` +
+      textFooter + `\nOdjava od obaveštenja: ${d.unsubscribe_url}`,
+    unsubscribe: String(d.unsubscribe_url ?? ''),
+  }),
+
   // ---------- 1 na 1 seanse ----------
   oneonone_received: (d) => ({
     subject: 'Upit za 1 na 1 seansu je primljen – Woke & Rooted',
@@ -212,7 +273,10 @@ async function sendViaResend(to: string, r: Rendered): Promise<void> {
       Authorization: `Bearer ${Deno.env.get('RESEND_API_KEY')}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ from: FROM, to: [to], subject: r.subject, html: r.html, text: r.text, attachments: r.attachments }),
+    body: JSON.stringify({
+      from: FROM, to: [to], subject: r.subject, html: r.html, text: r.text, attachments: r.attachments,
+      headers: r.unsubscribe ? { 'List-Unsubscribe': `<${r.unsubscribe}>` } : undefined,
+    }),
   })
   if (!res.ok) throw new Error(`Resend ${res.status}: ${await res.text()}`)
 }
