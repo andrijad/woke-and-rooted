@@ -211,8 +211,8 @@ const templates: Record<string, (d: Payload) => Rendered> = {
   oneonone_scheduled: (d) => sessionMail(d, 'Termin je zakazan', `Termin za 1 na 1 seansu: ${d.when}`,
     'tvoj termin za 1 na 1 seansu je zakazan.'),
 
-  oneonone_rescheduled: (d) => sessionMail(d, 'Termin je promenjen', `Promenjen termin: ${d.when}`,
-    'termin tvoje 1 na 1 seanse je promenjen. Novi termin je ispod.'),
+  oneonone_rescheduled: (d) => sessionMail(d, 'Izmena seanse', `Izmena: 1 na 1 seansa ${d.when}`,
+    'podaci tvoje 1 na 1 seanse su izmenjeni. Aktuelni termin i cena su ispod.'),
 
   oneonone_paid: (d) => ({
     subject: 'Uplata je potvrđena – Woke & Rooted',

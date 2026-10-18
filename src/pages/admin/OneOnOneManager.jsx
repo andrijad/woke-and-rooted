@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabaseClient'
 import { useRefreshOnFocus } from '../../lib/useRefreshOnFocus'
-import { MODE_LABEL, formatDateTime, toLocalInput, statusUrl, copyText } from '../../lib/oneOnOne'
+import { MODE_LABEL, SESSION_TYPES, formatDateTime, toLocalInput, statusUrl, copyText } from '../../lib/oneOnOne'
+import { errMsg } from '../../lib/errors'
 
 const GROUPS = [
   { status: 'new', title: 'Novi upiti', empty: 'Nema novih upita.' },
@@ -11,8 +12,7 @@ const GROUPS = [
 
 export default function OneOnOneManager() {
   const [rows, setRows] = useState([])
-  const [price, setPrice] = useState(null)
-  const [priceInput, setPriceInput] = useState('')
+  const [priceInfo, setPriceInfo] = useState({})
   const [priceMsg, setPriceMsg] = useState('')
   const [loading, setLoading] = useState(true)
   const [showCancelled, setShowCancelled] = useState(false)
@@ -24,23 +24,22 @@ export default function OneOnOneManager() {
     if (!silent) setLoading(true)
     const [{ data }, { data: s }] = await Promise.all([
       supabase.from('one_on_one_requests').select('*').order('created_at', { ascending: false }),
-      supabase.from('studio_settings').select('session_price').eq('id', 1).single()
+      supabase.from('studio_settings').select('session_price_info').eq('id', 1).single()
     ])
     setRows(data || [])
-    setPrice(s?.session_price ?? null)
-    setPriceInput(s?.session_price != null ? String(s.session_price) : '')
+    if (!silent) setPriceInfo(s?.session_price_info || {})
     setLoading(false)
   }
 
-  async function savePrice(e) {
+  async function savePrices(e) {
     e.preventDefault()
     setPriceMsg('')
-    const value = Number(priceInput)
-    if (!Number.isFinite(value) || value < 0 || priceInput === '') return setPriceMsg('Upiši iznos u RSD.')
-    const { data, error } = await supabase.from('studio_settings').update({ session_price: Math.round(value) }).eq('id', 1).select()
-    if (error || !data?.length) return setPriceMsg('Čuvanje nije uspelo.')
-    setPrice(data[0].session_price)
-    setPriceMsg('Sačuvano. Važi za nove zakazane termine.')
+    const clean = {}
+    for (const t of SESSION_TYPES) if ((priceInfo[t] || '').trim()) clean[t] = priceInfo[t].trim()
+    const { data, error } = await supabase.from('studio_settings').update({ session_price_info: clean }).eq('id', 1).select()
+    if (error) return setPriceMsg('Greška: ' + errMsg(error))
+    if (!data?.length) return setPriceMsg('Čuvanje nije uspelo.')
+    setPriceMsg('Sačuvano.')
   }
 
   if (loading) return <p className="muted">Učitavanje...</p>
@@ -49,16 +48,22 @@ export default function OneOnOneManager() {
 
   return (
     <div>
-      <form className="card" onSubmit={savePrice}>
-        <h4 style={{ marginBottom: 6 }}>Cena seanse</h4>
-        <p className="small muted">Jedan iznos za sve 1 na 1 seanse. Pri zakazivanju se upisuje uz termin.</p>
-        <div className="row">
-          <input type="number" min="0" value={priceInput} placeholder="RSD"
-            onChange={e => setPriceInput(e.target.value)} style={{ width: 140 }} />
-          <button type="submit" className="btn-sm">Sačuvaj</button>
+      <form className="card" onSubmit={savePrices}>
+        <h4 style={{ marginBottom: 6 }}>Okvirne cene</h4>
+        <p className="small muted">
+          Prikazuju se u formi za upit pored izabrane vrste seanse (npr. „6.000 RSD po satu“). Prazno = ne prikazuje se.
+          Tačan iznos upisuješ pri zakazivanju svakog termina.
+        </p>
+        {SESSION_TYPES.map(t => (
+          <label key={t} className="lbl">{t}
+            <input className="field" value={priceInfo[t] || ''} placeholder="npr. 6.000 RSD po satu"
+              onChange={e => setPriceInfo({ ...priceInfo, [t]: e.target.value })} />
+          </label>
+        ))}
+        <div className="row mt">
+          <button type="submit" className="btn-sm">Sačuvaj cene</button>
+          {priceMsg && <span className="small muted">{priceMsg}</span>}
         </div>
-        {priceMsg && <p className="small" style={{ marginBottom: 0 }}>{priceMsg}</p>}
-        {price == null && <p className="small error" style={{ marginBottom: 0 }}>Prvo upiši cenu da bi mogla da zakažeš termin.</p>}
       </form>
 
       {GROUPS.map(g => {
@@ -67,7 +72,7 @@ export default function OneOnOneManager() {
           <section key={g.status} className="section">
             <h3>{g.title}{list.length > 0 && <span className="badge" style={{ marginLeft: 10 }}>{list.length}</span>}</h3>
             {list.length === 0 && <p className="small muted">{g.empty}</p>}
-            {list.map(r => <RequestCard key={r.id} r={r} price={price} onChanged={() => load(true)} />)}
+            {list.map(r => <RequestCard key={r.id} r={r} onChanged={() => load(true)} />)}
           </section>
         )
       })}
@@ -76,14 +81,15 @@ export default function OneOnOneManager() {
         <input type="checkbox" checked={showCancelled} onChange={e => setShowCancelled(e.target.checked)} /> Prikaži otkazane
       </label>
       {showCancelled && byStatus('cancelled').map(r => (
-        <RequestCard key={r.id} r={r} price={price} onChanged={() => load(true)} />
+        <RequestCard key={r.id} r={r} onChanged={() => load(true)} />
       ))}
     </div>
   )
 }
 
-function RequestCard({ r, price, onChanged }) {
+function RequestCard({ r, onChanged }) {
   const [when, setWhen] = useState(toLocalInput(r.scheduled_at))
+  const [amount, setAmount] = useState(r.amount != null ? String(r.amount) : '')
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState('')
   const [copied, setCopied] = useState(false)
@@ -98,11 +104,12 @@ function RequestCard({ r, price, onChanged }) {
 
   function schedule() {
     if (!when) return setMsg('Izaberi datum i sat.')
+    const value = Math.round(Number(amount))
+    if (amount === '' || !Number.isFinite(value) || value <= 0) return setMsg('Upiši iznos za ovu seansu (RSD).')
     if (r.status === 'new') {
-      if (price == null) return setMsg('Prvo upiši cenu seanse (gore).')
-      update({ status: 'scheduled', scheduled_at: new Date(when).toISOString(), amount: price })
+      update({ status: 'scheduled', scheduled_at: new Date(when).toISOString(), amount: value })
     } else {
-      update({ scheduled_at: new Date(when).toISOString() })
+      update({ scheduled_at: new Date(when).toISOString(), amount: value })
     }
   }
 
@@ -156,9 +163,12 @@ function RequestCard({ r, price, onChanged }) {
 
       {(r.status === 'new' || r.status === 'scheduled') && (
         <div className="row mt">
-          <input type="datetime-local" value={when} onChange={e => setWhen(e.target.value)} />
+          <input type="datetime-local" value={when} onChange={e => setWhen(e.target.value)} aria-label="Termin" />
+          <input type="number" min="1" value={amount} onChange={e => setAmount(e.target.value)}
+            placeholder="Iznos" aria-label="Iznos (RSD)" style={{ width: 120 }} />
+          <span className="small muted">RSD</span>
           <button className="btn-sm" disabled={busy} onClick={schedule}>
-            {r.status === 'new' ? 'Zakaži' : 'Promeni termin'}
+            {r.status === 'new' ? 'Zakaži' : 'Sačuvaj izmenu'}
           </button>
         </div>
       )}
