@@ -63,6 +63,11 @@ Aplikacija za studio joge (vlasnica = admin; članovi = korisnici). Vite + React
 - `VITE_SUPABASE_URL` i `VITE_SUPABASE_KEY` se ugrađuju u build, pa moraju biti u **Settings → Build → Variables and secrets** (ne u runtime Variables). Posle promene: novi build/deploy.
 - U Supabase → Authentication → URL Configuration: Site URL i Redirect URLs moraju sadržati adresu sajta (+ `/registracija`, `/reset-password`).
 
+## Mejlovi i notifikacije
+- Mejlovi aplikacije: red `email_outbox` → pg_cron → Edge funkcija `send-emails` → Resend (`noreply@wokeandrooted.com`). Detalji i podešavanje u `docs/mejlovi.md`. Novi mejl = šablon u Edge funkciji + `enqueue_email(...)` u triggeru. Edge funkcija se deploy-uje ručno iz Supabase Dashboard-a.
+- Auth mejlovi (potvrda, reset lozinke): Supabase SMTP preko Resend-a, šabloni u `supabase/email-templates/` (ručno se ubacuju u Supabase).
+- Ton mejlova: „ti“ (kao u aplikaciji). Vlasnica se u porukama potpisuje nadimkom iz profila (Maja).
+
 ## Odloženo / na redu
 - Obaveštenja (email + PWA push; Viber kao kopirani tekst).
 - Podešavanje sopstvenog SMTP-a (bez toga reset lozinke radi samo za članove Supabase tima).
