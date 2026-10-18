@@ -75,6 +75,7 @@ export default function EventsManager({ past = false, draft = null, onDraftUsed,
   async function handleSave(e) {
     e.preventDefault()
     setError('')
+    setNote('')
     if (form.mode === 'single' && !form.date_single) { setError('Unesi datum događaja.'); return }
     if (form.mode === 'multi' && (!form.date_from || !form.date_to)) { setError('Unesi oba datuma (od—do).'); return }
     setSaving(true)
