@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import HomeLogo from '../components/HomeLogo'
 import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabaseClient'
@@ -20,6 +20,17 @@ export default function OneOnOneForm() {
   const [error, setError] = useState('')
   const [sent, setSent] = useState(null) // { token }
   const [copied, setCopied] = useState(false)
+  const [priceInfo, setPriceInfo] = useState({})
+
+  useEffect(() => {
+    let cancelled = false
+    async function load() {
+      const { data } = await supabase.rpc('get_session_price_info')
+      if (!cancelled && data && typeof data === 'object') setPriceInfo(data)
+    }
+    load()
+    return () => { cancelled = true }
+  }, [])
 
   // ulogovan član: ime i kontakt se povlače iz profila dok ih ne izmeni
   const val = k => (form[k] !== null ? form[k] : profile?.[k] || '')
@@ -121,6 +132,9 @@ export default function OneOnOneForm() {
                 {SESSION_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
               </select>
             </label>
+            {priceInfo[form.session_type] && (
+              <p className="small muted price-hint">Okvirna cena: {priceInfo[form.session_type]}. Tačan iznos dobijaš uz potvrdu termina.</p>
+            )}
 
             <fieldset className="choice">
               <legend>Da li si već bio/la kod nas na seansi?</legend>
