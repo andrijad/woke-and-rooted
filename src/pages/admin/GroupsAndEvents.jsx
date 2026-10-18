@@ -18,7 +18,7 @@ export default function GroupsAndEvents() {
         Spiskovi prijavljenih članova i uplate su u tabu „Termini i uplate".
       </p>
       <div className="row mb">
-        <button className={subtab === 'groups' ? '' : 'btn-ghost'} onClick={() => setSubtab('groups')}>Joga grupe</button>
+        <button className={subtab === 'groups' ? '' : 'btn-ghost'} onClick={() => setSubtab('groups')}>Joga</button>
         <button className={subtab === 'events' ? '' : 'btn-ghost'} onClick={() => setSubtab('events')}>Događaji</button>
         <button className={subtab === 'past' ? '' : 'btn-ghost'} onClick={() => setSubtab('past')}>Prethodni događaji</button>
       </div>

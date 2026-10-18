@@ -1,4 +1,5 @@
 import { errMsg } from '../lib/errors'
+import HomeLogo from '../components/HomeLogo'
 import { checkPassword, PASSWORD_HINT } from '../lib/password'
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
@@ -8,7 +9,7 @@ import SiteLink from '../components/SiteLink'
 function Frame({ children }) {
   return (
     <div className="auth">
-      <img className="logo" src="/brand/logo-yellow.svg" alt="Woke & Rooted" />
+      <HomeLogo src="/brand/logo-yellow.svg" />
       <div className="auth-card">{children}</div>
       <SiteLink onDark />
     </div>

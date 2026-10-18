@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import HomeLogo from '../components/HomeLogo'
 import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabaseClient'
 import { useAuth } from '../context/AuthContext'
@@ -65,7 +66,7 @@ export default function OneOnOneForm() {
   return (
     <div className="shell">
       <header className="topbar">
-        <img className="logo" src="/brand/logo-brown.svg" alt="Woke & Rooted" />
+        <HomeLogo />
         <Link to={back} className="back">← Nazad</Link>
       </header>
 

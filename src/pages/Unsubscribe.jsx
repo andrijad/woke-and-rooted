@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import HomeLogo from '../components/HomeLogo'
 import { useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabaseClient'
 import SiteLink from '../components/SiteLink'
@@ -20,7 +21,7 @@ export default function Unsubscribe() {
   return (
     <div className="shell">
       <header className="topbar">
-        <img className="logo" src="/brand/logo-brown.svg" alt="Woke & Rooted" />
+        <HomeLogo />
       </header>
       <div className="greeting"><h1>Obaveštenja mejlom</h1></div>
       <div className="card">

@@ -1,4 +1,5 @@
 import { errMsg } from '../lib/errors'
+import HomeLogo from '../components/HomeLogo'
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
@@ -21,7 +22,7 @@ export default function Login() {
 
   return (
     <div className="auth">
-      <img className="logo" src="/brand/logo-yellow.svg" alt="Woke & Rooted" />
+      <HomeLogo src="/brand/logo-yellow.svg" />
       <div className="auth-card">
         <h1>Prijava</h1>
         <form onSubmit={handleSubmit}>

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import HomeLogo from '../components/HomeLogo'
 import NotificationBell from '../components/NotificationBell'
 import { useAuth } from '../context/AuthContext'
 import SiteLink from '../components/SiteLink'
@@ -21,7 +22,7 @@ export default function AdminHome() {
   return (
     <div className="shell wide">
       <header className="topbar">
-        <img className="logo" src="/brand/logo-brown.svg" alt="Woke & Rooted" />
+        <HomeLogo onHome={() => setTab('members')} />
         <div className="topbar-actions">
           <NotificationBell />
           <button className="btn-ghost" onClick={logout}>Izloguj se</button>

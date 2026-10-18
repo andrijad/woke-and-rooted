@@ -5,6 +5,7 @@ import { useAuth } from '../../context/AuthContext'
 import PaymentDetails from './PaymentDetails'
 import { WEEKDAY_NAMES } from '../../lib/schedule'
 import { useRefreshOnFocus } from '../../lib/useRefreshOnFocus'
+import { sanitizeHtml, hasText } from '../../lib/sanitize'
 
 function currentMonthStart() {
   const d = new Date()
@@ -85,8 +86,13 @@ export default function SignupCard() {
         .from('group_schedule').select('*').in('group_id', [...groupIds]).order('weekday')
       for (const s of scheduleRows || []) {
         if (!scheduleMap[s.group_id]) scheduleMap[s.group_id] = []
-        scheduleMap[s.group_id].push(`${WEEKDAY_NAMES[s.weekday]} ${s.start_time.slice(0, 5)}h`)
+        scheduleMap[s.group_id].push(s)
       }
+    }
+    for (const id of Object.keys(scheduleMap)) {
+      scheduleMap[id] = scheduleMap[id]
+        .sort((a, b) => a.weekday - b.weekday || (a.start_time < b.start_time ? -1 : 1))
+        .map(x => `${WEEKDAY_NAMES[x.weekday]} ${x.start_time.slice(0, 5)}h`)
     }
     setScheduleByGroup(scheduleMap)
 
@@ -106,7 +112,7 @@ export default function SignupCard() {
     })
     if (err) {
       setError(err.code === '23505'
-        ? 'Već si prijavljena u jednu grupu za taj mesec.'
+        ? 'Već imaš prijavu za jednu grupu u tom mesecu.'
         : 'Došlo je do greške. Pokušaj ponovo.')
     }
     await load(true)
@@ -126,30 +132,34 @@ export default function SignupCard() {
 
   const monthStart = currentMonthStart()
 
+  const title = settings?.yoga_title || 'Redovna joga'
+
   return (
     <section className="section">
       <div className="section-title">
         <img src="/brand/yoga.svg" alt="" />
-        <h3>Redovna joga</h3>
+        <h3>{title}</h3>
       </div>
+
+      {settings?.yoga_description_short && <p className="small yoga-intro">{settings.yoga_description_short}</p>}
+      {hasText(settings?.yoga_description_html) && (
+        <details className="yoga-more">
+          <summary>Više o jogi</summary>
+          <div className="rich" dangerouslySetInnerHTML={{ __html: sanitizeHtml(settings.yoga_description_html) }} />
+        </details>
+      )}
 
       {mySignups.map(s => (
         <div key={s.id} className={`signup ${s.status === 'paid' ? 'is-paid' : 'is-due'}`}>
-          <p className="when">
-            {s.period === monthStart ? 'Ovaj mesec' : 'Sledeći mesec'} · {monthLabel(s.period)}
-          </p>
-          <h4>{s.groups?.name}</h4>
+          <p className="when">{monthLabel(s.period)}{s.period === monthStart ? ' · ovaj mesec' : ''}</p>
+          <h4>Tvoja grupa: {s.groups?.name || s.group_name}</h4>
           {scheduleByGroup[s.group_id] && (
             <p className="small" style={{ margin: '0 0 8px' }}>{scheduleByGroup[s.group_id].join(', ')}</p>
           )}
-          {s.status === 'paid' && (
-            <p className="strong" style={{ margin: 0 }}>✓ Prijavljena si i uplata je potvrđena</p>
-          )}
+          {s.status === 'paid' && <p className="strong" style={{ margin: 0 }}>✓ Uplata je potvrđena</p>}
           {s.status === 'due' && (
             <div>
-              <p style={{ margin: 0 }}>
-                <span className="strong">Prijavljena si — čeka se uplata.</span>
-              </p>
+              <p className="strong" style={{ margin: 0 }}>Čeka se uplata.</p>
               <PaymentDetails settings={settings} amount={s.amount} refCode={s.ref_code} />
               <button className="btn-ghost btn-sm" onClick={() => handleCancel(s)}>Poništi prijavu</button>
             </div>
@@ -158,28 +168,26 @@ export default function SignupCard() {
       ))}
 
       {openOffers.map(({ period, groups }) => (
-        <div key={period} className="mb">
-          <p className="strong" style={{ margin: '0 0 8px' }}>
-            Otvorene prijave za {monthLabel(period)}
-          </p>
-          {groups.map(({ group, full }) => (
-            <div key={group.id} className="offer">
-              <h4>{group.name}</h4>
-              {scheduleByGroup[group.id] && (
-                <p className="small muted" style={{ margin: '0 0 4px' }}>
-                  {scheduleByGroup[group.id].join(', ')}
-                </p>
-              )}
-              {group.description_short && (
-                <p className="small" style={{ margin: '0 0 6px' }}>{group.description_short}</p>
-              )}
-              <p className="price" style={{ margin: '0 0 10px' }}>{group.monthly_price} RSD</p>
-              {full
-                ? <span className="badge clay">Grupa je popunjena</span>
-                : <button onClick={() => handleSignup(group, period)}
-                    disabled={busyKey === `${group.id}:${period}`}>Prijavi se</button>}
-            </div>
-          ))}
+        <div key={period} className="offer">
+          <p className="strong" style={{ margin: '0 0 8px' }}>Prijave za {monthLabel(period)}</p>
+          <p className="small muted" style={{ margin: '0 0 6px' }}>Izaberi jednu grupu:</p>
+          <ul className="group-options">
+            {groups.map(({ group, full }) => (
+              <li key={group.id}>
+                <div>
+                  <p className="strong no-margin">{group.name}</p>
+                  {scheduleByGroup[group.id] && (
+                    <p className="small muted no-margin">{scheduleByGroup[group.id].join(', ')}</p>
+                  )}
+                  <p className="small no-margin">{group.monthly_price} RSD mesečno</p>
+                </div>
+                {full
+                  ? <span className="badge clay">Popunjeno</span>
+                  : <button className="btn-sm" onClick={() => handleSignup(group, period)}
+                      disabled={busyKey === `${group.id}:${period}`}>Prijavi se</button>}
+              </li>
+            ))}
+          </ul>
         </div>
       ))}
 
@@ -188,7 +196,7 @@ export default function SignupCard() {
       {mySignups.length === 0 && openOffers.length === 0 && (
         <div className="empty">
           <img src="/brand/nature.svg" alt="" />
-          <p>Trenutno nema otvorenih prijava za redovnu jogu. Obavestićemo te kad se otvore.</p>
+          <p>Trenutno nema otvorenih prijava. Obavestićemo te kad se otvore.</p>
         </div>
       )}
     </section>
