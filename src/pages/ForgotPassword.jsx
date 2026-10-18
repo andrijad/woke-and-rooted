@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import HomeLogo from '../components/HomeLogo'
 import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabaseClient'
 import SiteLink from '../components/SiteLink'
@@ -23,7 +24,7 @@ export default function ForgotPassword() {
 
   return (
     <div className="auth">
-      <img className="logo" src="/brand/logo-yellow.svg" alt="Woke & Rooted" />
+      <HomeLogo src="/brand/logo-yellow.svg" />
       <div className="auth-card">
       <h1>Zaboravljena lozinka</h1>
       {sent ? (

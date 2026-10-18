@@ -1,4 +1,5 @@
 import { displayName } from '../lib/names'
+import HomeLogo from '../components/HomeLogo'
 import NotificationBell from '../components/NotificationBell'
 import { useAuth } from '../context/AuthContext'
 import SiteLink from '../components/SiteLink'
@@ -12,7 +13,7 @@ export default function MemberHome() {
   return (
     <div className="shell">
       <header className="topbar">
-        <img className="logo" src="/brand/logo-brown.svg" alt="Woke & Rooted" />
+        <HomeLogo />
         <div className="topbar-actions">
           <NotificationBell />
           <button className="btn-ghost btn-sm" onClick={logout}>Izloguj se</button>

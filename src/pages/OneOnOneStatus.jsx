@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import HomeLogo from '../components/HomeLogo'
 import { Link, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabaseClient'
 import { formatDateTime } from '../lib/oneOnOne'
@@ -29,7 +30,7 @@ export default function OneOnOneStatus() {
   return (
     <div className="shell">
       <header className="topbar">
-        <img className="logo" src="/brand/logo-brown.svg" alt="Woke & Rooted" />
+        <HomeLogo />
         <Link to="/seanse" className="back">Novi upit</Link>
       </header>
       <div className="greeting"><h1>Status upita</h1></div>

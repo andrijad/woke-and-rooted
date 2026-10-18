@@ -1,4 +1,5 @@
 import { errMsg } from '../lib/errors'
+import HomeLogo from '../components/HomeLogo'
 import { checkPassword, PASSWORD_HINT } from '../lib/password'
 import { useEffect, useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
@@ -43,7 +44,7 @@ export default function ResetPassword() {
 
   return (
     <div className="auth">
-      <img className="logo" src="/brand/logo-yellow.svg" alt="Woke & Rooted" />
+      <HomeLogo src="/brand/logo-yellow.svg" />
       <div className="auth-card">
       <h1>Nova lozinka</h1>
 

@@ -619,3 +619,28 @@ table.members td { vertical-align: top; }
   dialog.notif-modal .modal-body { max-height: calc(85vh - 80px); }
 }
 .notif.is-read:hover:not(:disabled) { border-left-color: var(--line); }
+
+/* ---------- Joga: grupe (vlasnica) i izbor grupe (član) ---------- */
+
+.no-margin { margin: 0; }
+.group-row {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 12px 14px; margin-bottom: 8px;
+  background: var(--field); border: 1px solid var(--line); border-radius: 14px;
+}
+.group-row.is-inactive { opacity: 0.65; }
+.group-row-main { display: grid; gap: 2px; min-width: 0; }
+.group-edit h4 { margin: 0 0 10px; }
+.schedule-list { list-style: none; margin: 0 0 8px; padding: 0; }
+.schedule-list li { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 4px 0; border-bottom: 1px solid var(--line); }
+.yoga-intro { margin: -4px 0 8px; }
+.yoga-more { margin-bottom: 12px; }
+.group-options { list-style: none; margin: 0; padding: 0; }
+.group-options li {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 10px 0; border-top: 1px solid var(--line);
+}
+.group-options li > div { display: grid; gap: 2px; min-width: 0; }
+.group-options button, .group-options .badge { flex: none; }
+.logo-link { display: inline-block; line-height: 0; }
+.auth .logo-link { position: relative; z-index: 1; }

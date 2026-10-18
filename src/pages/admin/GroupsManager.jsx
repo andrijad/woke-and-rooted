@@ -2,179 +2,257 @@ import { errMsg } from '../../lib/errors'
 import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabaseClient'
 import RichTextEditor from '../../components/RichTextEditor'
+import { WEEKDAY_NAMES } from '../../lib/schedule'
 
-const WEEKDAYS = [
-  { value: 1, label: 'Ponedeljak' },
-  { value: 2, label: 'Utorak' },
-  { value: 3, label: 'Sreda' },
-  { value: 4, label: 'Četvrtak' },
-  { value: 5, label: 'Petak' },
-  { value: 6, label: 'Subota' },
-  { value: 7, label: 'Nedelja' },
-]
+const WEEKDAYS = [1, 2, 3, 4, 5, 6, 7].map(v => ({ value: v, label: WEEKDAY_NAMES[v] }))
 
-const BLANK = {
-  name: '', monthly_price: '', capacity: '',
-  description_short: '', description_html: '', active: true
+const BLANK = { name: '', monthly_price: '', capacity: '', active: true }
+
+function scheduleText(rows) {
+  return (rows || [])
+    .slice()
+    .sort((a, b) => a.weekday - b.weekday || (a.start_time < b.start_time ? -1 : 1))
+    .map(s => `${WEEKDAY_NAMES[s.weekday]} ${s.start_time.slice(0, 5)}h`)
+    .join(', ')
+}
+
+// Zajednički naziv i opis joge (vide ga članovi iznad liste grupa).
+function YogaInfo() {
+  const [form, setForm] = useState(null)
+  const [saving, setSaving] = useState(false)
+  const [msg, setMsg] = useState('')
+
+  useEffect(() => {
+    let cancelled = false
+    async function load() {
+      const { data } = await supabase.from('studio_settings')
+        .select('yoga_title, yoga_description_short, yoga_description_html').eq('id', 1).single()
+      if (cancelled) return
+      setForm({
+        yoga_title: data?.yoga_title || 'Redovna joga',
+        yoga_description_short: data?.yoga_description_short || '',
+        yoga_description_html: data?.yoga_description_html || ''
+      })
+    }
+    load()
+    return () => { cancelled = true }
+  }, [])
+
+  async function save(e) {
+    e.preventDefault()
+    setSaving(true); setMsg('')
+    const { data, error } = await supabase.from('studio_settings').update(form).eq('id', 1).select()
+    setSaving(false)
+    if (error) setMsg('Greška: ' + errMsg(error))
+    else if (!data || data.length === 0) setMsg('Nije sačuvano.')
+    else setMsg('Sačuvano.')
+  }
+
+  if (!form) return null
+
+  return (
+    <form className="card" onSubmit={save}>
+      <h3>Joga</h3>
+      <p className="small muted">Naziv i opis koje članovi vide iznad liste grupa.</p>
+      <input className="field" placeholder="Naziv (npr. Redovna joga)" value={form.yoga_title}
+        onChange={e => setForm({ ...form, yoga_title: e.target.value })} required />
+      <input className="field" placeholder="Kratak opis" value={form.yoga_description_short}
+        onChange={e => setForm({ ...form, yoga_description_short: e.target.value })} />
+      <p className="small strong mt">Pun opis (opciono)</p>
+      <RichTextEditor value={form.yoga_description_html}
+        onChange={html => setForm({ ...form, yoga_description_html: html })} />
+      <div className="row mt">
+        <button type="submit" disabled={saving}>Sačuvaj opis</button>
+        {msg && <span className="small muted">{msg}</span>}
+      </div>
+    </form>
+  )
 }
 
 export default function GroupsManager() {
   const [groups, setGroups] = useState([])
-  const [selectedId, setSelectedId] = useState(null)
+  const [scheduleByGroup, setScheduleByGroup] = useState({})
+  const [editing, setEditing] = useState(null) // null | 'new' | group id
   const [form, setForm] = useState(BLANK)
-  const [schedule, setSchedule] = useState([])
+  const [schedule, setSchedule] = useState([]) // termini grupe koja se uređuje (za novu: još nesačuvani)
   const [newDay, setNewDay] = useState({ weekday: '1', start_time: '18:00' })
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
 
   useEffect(() => { loadGroups() }, [])
 
   async function loadGroups() {
-    setLoading(true)
-    const { data } = await supabase.from('groups').select('*').order('name')
+    const [{ data }, { data: rows }] = await Promise.all([
+      supabase.from('groups').select('*').order('name'),
+      supabase.from('group_schedule').select('*')
+    ])
+    const map = {}
+    for (const s of rows || []) (map[s.group_id] ||= []).push(s)
     setGroups(data || [])
+    setScheduleByGroup(map)
     setLoading(false)
+    return map
   }
 
-  async function selectGroup(id) {
-    setSelectedId(id)
-    if (!id) { setForm(BLANK); setSchedule([]); return }
-    const group = groups.find(g => g.id === id)
-    setForm({
-      name: group.name,
-      monthly_price: group.monthly_price,
-      capacity: group.capacity ?? '',
-      description_short: group.description_short || '',
-      description_html: group.description_html || '',
-      active: group.active
-    })
-    const { data } = await supabase.from('group_schedule').select('*').eq('group_id', id).order('weekday')
-    setSchedule(data || [])
+  function startNew() {
+    setEditing('new'); setForm(BLANK); setSchedule([]); setError('')
+  }
+
+  function startEdit(g) {
+    setEditing(g.id)
+    setForm({ name: g.name, monthly_price: g.monthly_price, capacity: g.capacity ?? '', active: g.active })
+    setSchedule(scheduleByGroup[g.id] || [])
+    setError('')
+  }
+
+  function close() {
+    setEditing(null); setForm(BLANK); setSchedule([]); setError('')
   }
 
   async function handleSave(e) {
     e.preventDefault()
-    setSaving(true)
+    setSaving(true); setError('')
     const payload = {
       name: form.name,
       monthly_price: Number(form.monthly_price),
       capacity: form.capacity === '' ? null : Number(form.capacity),
-      description_short: form.description_short,
-      description_html: form.description_html,
       active: form.active
     }
-    if (selectedId) {
-      const { error } = await supabase.from('groups').update(payload).eq('id', selectedId)
-      if (error) alert('Greška: ' + errMsg(error))
+    if (editing === 'new') {
+      const { data, error: err } = await supabase.from('groups').insert(payload).select().single()
+      if (err) { setError(errMsg(err)); setSaving(false); return }
+      if (schedule.length > 0) {
+        const { error: sErr } = await supabase.from('group_schedule').insert(
+          schedule.map(s => ({ group_id: data.id, weekday: s.weekday, start_time: s.start_time }))
+        )
+        if (sErr) setError('Grupa je napravljena, ali termini nisu sačuvani: ' + errMsg(sErr))
+      }
     } else {
-      const { data, error } = await supabase.from('groups').insert(payload).select().single()
-      if (error) { alert('Greška: ' + errMsg(error)); setSaving(false); return }
-      setSelectedId(data.id)
+      const { error: err } = await supabase.from('groups').update(payload).eq('id', editing)
+      if (err) { setError(errMsg(err)); setSaving(false); return }
     }
     await loadGroups()
     setSaving(false)
-  }
-
-  async function deleteGroup() {
-    const g = groups.find(x => x.id === selectedId)
-    if (!g || g.active) return
-    if (!confirm(`Trajno obrisati grupu „${g.name}"? Evidencija prijava ostaje u tabu „Termini i uplate".`)) return
-    const { data, error } = await supabase.from('groups').delete().eq('id', selectedId).select()
-    if (error) {
-      alert('Greška: ' + errMsg(error))
-    } else if (!data || data.length === 0) {
-      alert('Grupa nije obrisana.')
-    } else {
-      selectGroup(null)
-    }
-    await loadGroups()
+    close()
   }
 
   async function addScheduleRow() {
-    if (!selectedId) { alert('Prvo sačuvaj grupu.'); return }
-    const { error } = await supabase.from('group_schedule').insert({
-      group_id: selectedId,
-      weekday: Number(newDay.weekday),
-      start_time: newDay.start_time
-    })
-    if (error) alert('Greška: ' + errMsg(error))
-    const { data } = await supabase.from('group_schedule').select('*').eq('group_id', selectedId).order('weekday')
-    setSchedule(data || [])
+    const row = { weekday: Number(newDay.weekday), start_time: newDay.start_time }
+    if (editing === 'new') {
+      setSchedule([...schedule, { ...row, id: `tmp-${Date.now()}` }])
+      return
+    }
+    const { error: err } = await supabase.from('group_schedule').insert({ ...row, group_id: editing })
+    if (err) { setError(errMsg(err)); return }
+    const map = await loadGroups()
+    setSchedule(map[editing] || [])
   }
 
-  async function removeScheduleRow(id) {
-    await supabase.from('group_schedule').delete().eq('id', id)
-    setSchedule(schedule.filter(s => s.id !== id))
+  async function removeScheduleRow(s) {
+    if (editing === 'new') { setSchedule(schedule.filter(x => x.id !== s.id)); return }
+    await supabase.from('group_schedule').delete().eq('id', s.id).select()
+    const map = await loadGroups()
+    setSchedule(map[editing] || [])
+  }
+
+  async function deleteGroup(g) {
+    if (g.active) return
+    if (!confirm(`Trajno obrisati grupu „${g.name}"? Evidencija prijava ostaje u tabu „Termini i uplate".`)) return
+    const { data, error: err } = await supabase.from('groups').delete().eq('id', g.id).select()
+    if (err) alert('Greška: ' + errMsg(err))
+    else if (!data || data.length === 0) alert('Grupa nije obrisana.')
+    if (editing === g.id) close()
+    await loadGroups()
   }
 
   if (loading) return <p className="muted">Učitavanje...</p>
 
-  return (
-    <div>
-      <div className="row mb">
-        <select value={selectedId || ''} onChange={e => selectGroup(e.target.value || null)}>
-          <option value="">— Nova grupa —</option>
-          {groups.map(g => (
-            <option key={g.id} value={g.id}>{g.name}{!g.active && ' (neaktivno)'}</option>
-          ))}
-        </select>
+  const editForm = (
+    <form className="card group-edit" onSubmit={handleSave}>
+      <h4>{editing === 'new' ? 'Nova grupa' : 'Izmena grupe'}</h4>
+      <label className="lbl">Naziv grupe
+        <input className="field" placeholder="npr. Jutarnja" value={form.name}
+          onChange={e => setForm({ ...form, name: e.target.value })} required />
+      </label>
+      <div className="row nowrap">
+        <label className="lbl grow">Mesečna cena (RSD)
+          <input className="field" type="number" value={form.monthly_price}
+            onChange={e => setForm({ ...form, monthly_price: e.target.value })} required />
+        </label>
+        <label className="lbl grow">Kapacitet
+          <input className="field" type="number" placeholder="bez ograničenja" value={form.capacity}
+            onChange={e => setForm({ ...form, capacity: e.target.value })} />
+        </label>
       </div>
 
-      <form onSubmit={handleSave}>
-        <input className="field" placeholder="Naziv grupe" value={form.name}
-          onChange={e => setForm({ ...form, name: e.target.value })} required />
-        <div className="row nowrap">
-          <input className="grow" type="number" placeholder="Mesečna cena (RSD)" value={form.monthly_price}
-            onChange={e => setForm({ ...form, monthly_price: e.target.value })} required />
-          <input className="grow" type="number" placeholder="Kapacitet (opciono)" value={form.capacity}
-            onChange={e => setForm({ ...form, capacity: e.target.value })} />
-        </div>
-        <input className="field" placeholder="Kratak opis (prikazuje se u listi)" value={form.description_short}
-          onChange={e => setForm({ ...form, description_short: e.target.value })} />
+      <p className="small strong mt">Termini</p>
+      {schedule.length === 0 && <p className="small muted">Još nema termina.</p>}
+      <ul className="schedule-list">
+        {schedule.slice().sort((a, b) => a.weekday - b.weekday || (a.start_time < b.start_time ? -1 : 1)).map(s => (
+          <li key={s.id}>
+            <span>{WEEKDAY_NAMES[s.weekday]} {s.start_time.slice(0, 5)}h</span>
+            <button type="button" className="btn-ghost btn-sm" onClick={() => removeScheduleRow(s)}>Ukloni</button>
+          </li>
+        ))}
+      </ul>
+      <div className="row">
+        <select value={newDay.weekday} onChange={e => setNewDay({ ...newDay, weekday: e.target.value })}>
+          {WEEKDAYS.map(w => <option key={w.value} value={w.value}>{w.label}</option>)}
+        </select>
+        <input type="time" value={newDay.start_time}
+          onChange={e => setNewDay({ ...newDay, start_time: e.target.value })} />
+        <button type="button" className="btn-ghost" onClick={addScheduleRow}>Dodaj termin</button>
+      </div>
 
-        <label className="check">
-          <input type="checkbox" checked={form.active}
-            onChange={e => setForm({ ...form, active: e.target.checked })} /> Aktivno (vidljivo članovima)
-        </label>
+      <label className="check mt">
+        <input type="checkbox" checked={form.active}
+          onChange={e => setForm({ ...form, active: e.target.checked })} /> Aktivno (vidljivo članovima)
+      </label>
 
-        <p className="small strong mt">Pun opis</p>
-        <RichTextEditor
-          value={form.description_html}
-          onChange={html => setForm({ ...form, description_html: html })}
-        />
+      {error && <p className="error">{error}</p>}
+      <div className="row mt">
+        <button type="submit" disabled={saving}>{editing === 'new' ? 'Napravi grupu' : 'Sačuvaj izmene'}</button>
+        <button type="button" className="btn-ghost" onClick={close}>Odustani</button>
+      </div>
+    </form>
+  )
 
-        <button type="submit" className="mt" disabled={saving}>
-          {selectedId ? 'Sačuvaj izmene' : 'Napravi grupu'}
-        </button>
-        {selectedId && groups.find(x => x.id === selectedId)?.active === false && (
-          <button type="button" className="btn-danger mt" onClick={deleteGroup}>Obriši trajno</button>
-        )}
-      </form>
+  return (
+    <div>
+      <YogaInfo />
 
-      {selectedId && (
-        <div className="section">
-          <h3>Termini</h3>
-          <ul>
-            {schedule.map(s => (
-              <li key={s.id}>
-                {WEEKDAYS.find(w => w.value === s.weekday)?.label} {s.start_time.slice(0, 5)}h
-                {' '}<button type="button" className="btn-danger btn-sm" onClick={() => removeScheduleRow(s.id)}>Obriši</button>
-              </li>
-            ))}
-          </ul>
-          <div className="row">
-            <select value={newDay.weekday} onChange={e => setNewDay({ ...newDay, weekday: e.target.value })}>
-              {WEEKDAYS.map(w => <option key={w.value} value={w.value}>{w.label}</option>)}
-            </select>
-            <input className="grow" type="time" value={newDay.start_time}
-              onChange={e => setNewDay({ ...newDay, start_time: e.target.value })} />
-            <button type="button" onClick={addScheduleRow}>Dodaj termin</button>
+      <div className="row between mt mb">
+        <h3 className="no-margin">Grupe</h3>
+        {editing !== 'new' && <button onClick={startNew}>+ Nova grupa</button>}
+      </div>
+      {editing === 'new' && editForm}
+
+      {groups.length === 0 && editing !== 'new' && <p className="small muted">Još nema grupa.</p>}
+
+      {groups.map(g => (
+        editing === g.id ? <div key={g.id}>{editForm}</div> : (
+          <div key={g.id} className={`group-row${g.active ? '' : ' is-inactive'}`}>
+            <div className="group-row-main">
+              <p className="strong no-margin">
+                {g.name}
+                {!g.active && <span className="badge" style={{ marginLeft: 8 }}>neaktivno</span>}
+              </p>
+              <p className="small muted no-margin">{scheduleText(scheduleByGroup[g.id]) || 'Bez termina'}</p>
+              <p className="small no-margin">
+                {g.monthly_price} RSD mesečno{g.capacity != null ? ` · do ${g.capacity} članova` : ''}
+              </p>
+            </div>
+            <div className="row">
+              <button className="btn-ghost btn-sm" onClick={() => startEdit(g)}>Izmeni</button>
+              {!g.active && <button className="btn-danger btn-sm" onClick={() => deleteGroup(g)}>Obriši trajno</button>}
+            </div>
           </div>
-        </div>
-      )}
+        )
+      ))}
 
       <p className="small muted mt">
-        Spiskovi prijavljenih članova i statusi uplata za ovu grupu su u tabu „Termini i uplate".
+        Prijave se otvaraju i zatvaraju za svaku grupu i mesec posebno, u tabu „Termini i uplate".
       </p>
     </div>
   )
