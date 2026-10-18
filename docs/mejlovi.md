@@ -10,6 +10,21 @@
 
 Mejlovi za potvrdu emaila i reset lozinke šalje Supabase Auth (SMTP Resend, šabloni u `supabase/email-templates/`).
 
+## Vrste mejlova
+| kind | Kada | Ko dobija |
+|---|---|---|
+| `email_verified` | email potvrđen (sam ili ručno) | član |
+| `signup_created` | član se sam prijavio na jogu/događaj (i pri registraciji sa grupom) | član, sa IPS QR |
+| `signup_added` | vlasnica dodala člana | član (i ručni), sa IPS QR |
+
+IPS QR se šalje kao ugrađena slika (`cid:ips-qr`, Resend inline attachment).
+
+## Notifikacije (036)
+- član se prijavi → član „Uspešna prijava: …“, vlasnica „IME – nova prijava: …“
+- vlasnica doda → član „Maja te je dodala u …“, vlasnica „Dodala si IME u …“
+- potvrđena uplata → član „Uplata za … je potvrđena.“
+- član otkaže → vlasnica „IME – otkazana prijava: …“ (kad vlasnica ukloni — ništa)
+
 ## Nova vrsta mejla
 - U Edge funkciji dodati šablon u `templates` (ključ = `kind`), pa ponovo deploy funkcije (Dashboard → Edge Functions → send-emails → Code → Deploy).
 - U migraciji pozvati `enqueue_email(email, 'kind', jsonb_build_object(...))` iz triggera.
