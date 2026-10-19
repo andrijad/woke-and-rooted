@@ -36,7 +36,9 @@ Aplikacija za studio joge (vlasnica = admin; članovi = korisnici). Vite + React
 - Novi admin: registracija, pa `update profiles set is_admin = true where email = '…'`.
 - Potvrda mejla zahteva sopstveni SMTP u Supabase-u.
 
-## Bezbednost (audit 2026-10-17)
+## Bezbednost (audit 2026-10-17, dopuna 2026-10-18 — vidi `docs/bezbednost.md`)
+- Turnstile (`components/Turnstile.jsx`, `VITE_TURNSTILE_SITE_KEY`) na prijavi, registraciji i resetu lozinke; token ide u Supabase Auth (`captchaToken`), a proveru radi Supabase (Attack Protection). Bez ključa se ne prikazuje.
+- Interne SECURITY DEFINER funkcije (mejlovi, notifikacije, pomoćne): uvek `revoke execute ... from public, anon, authenticated`; ako ih zove Edge funkcija, `grant ... to service_role`.
 - Sigurnost podataka je u RLS-u i triggerima, ne u frontendu. Član ne sme da utiče na `status`/`amount` svoje prijave: `validate_member_monthly_signup` / `validate_member_event_signup` (028) ih postavljaju, uz proveru otvorenog perioda, kapaciteta i dostupnosti.
 - Član ne menja `email`, `is_manual`, `nickname`, `merge_candidate_id` (trigger `protect_profile_owner_fields`).
 - HTML iz editora uvek kroz `sanitizeHtml` (lista dozvoljenih oznaka). Bez `dangerouslySetInnerHTML` na drugim mestima.

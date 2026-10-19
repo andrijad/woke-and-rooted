@@ -1,4 +1,6 @@
 import { errMsg } from '../lib/errors'
+import Turnstile from '../components/Turnstile'
+import { TURNSTILE_SITE_KEY } from '../lib/turnstile'
 import HomeLogo from '../components/HomeLogo'
 import { checkPassword, PASSWORD_HINT } from '../lib/password'
 import { useEffect, useState } from 'react'
@@ -33,6 +35,8 @@ export default function Registration() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [checkEmail, setCheckEmail] = useState(false)
+  const [captcha, setCaptcha] = useState('')
+  const [captchaKey, setCaptchaKey] = useState(0)
 
   useEffect(() => {
     let cancelled = false
@@ -48,6 +52,7 @@ export default function Registration() {
     if (form.website) return // honeypot
     const pwErr = checkPassword(form.password)
     if (pwErr) return setError(pwErr)
+    if (TURNSTILE_SITE_KEY && !captcha) return setError('Sačekaj da se završi provera „Nisam robot“.')
     setSaving(true)
     const [group_id, period] = choice ? choice.split('|') : [null, null]
     const { data, error: err } = await supabase.auth.signUp({
@@ -55,6 +60,7 @@ export default function Registration() {
       password: form.password,
       options: {
         emailRedirectTo: window.location.origin,
+        captchaToken: captcha || undefined,
         data: {
           full_name: form.full_name.trim(),
           phone: form.phone.trim() || null,
@@ -66,6 +72,7 @@ export default function Registration() {
     })
     if (err) {
       setError(errMsg(err))
+      setCaptcha(''); setCaptchaKey(k => k + 1)
     } else if (data.session) {
       navigate('/')
     } else {
@@ -119,6 +126,7 @@ export default function Registration() {
           </fieldset>
         )}
 
+        <Turnstile onToken={setCaptcha} resetKey={captchaKey} />
         {error && <p className="error">{error}</p>}
         <button type="submit" disabled={saving}>{saving ? 'Registrujem...' : 'Registruj se'}</button>
       </form>
