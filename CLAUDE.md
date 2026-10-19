@@ -12,7 +12,7 @@ Aplikacija za studio joge (vlasnica = admin; članovi = korisnici). Vite + React
 - `src/pages/Login|ForgotPassword|ResetPassword.jsx` — prijava i reset lozinke
 - `src/pages/AdminHome.jsx` — tabovi: **Članovi** (MembersManager), **Grupe i događaji** (GroupsAndEvents → GroupsManager / EventsManager (predstojeći) / EventsManager `past` (prethodni), samo definicije), **Termini i uplate** (SignupsOverview, prijave + potvrda uplate)
 - `src/pages/MemberHome.jsx` — SignupCard (redovna joga), EventsCard (događaji/radionice)
-- `src/pages/OneOnOneForm.jsx` (`/seanse`, javno) i `OneOnOneStatus.jsx` (`/seanse/status/:token`, javno) — upit za 1 na 1 seanse; `admin/OneOnOneManager.jsx` (tab „1 na 1 seanse“); `member/OneOnOneCard.jsx`
+- `src/pages/OneOnOneForm.jsx` (`/seanse`, javno; šalje preko Edge funkcije `submit-session-request` sa Turnstile proverom, 043) i `OneOnOneStatus.jsx` (`/seanse/status/:token`, javno) — upit za 1 na 1 seanse; `admin/OneOnOneManager.jsx` (tab „1 na 1 seanse“); `member/OneOnOneCard.jsx`
 - `src/lib/` — `ips.js` (IPS QR + pozivi na broj), `schedule.js` (termini grupa), `events.js`, `useRefreshOnFocus.js`, `supabaseClient.js`
 - `supabase/migrations/` — SQL migracije, numerisane redom (001…). `010` je namerno preskočena (zamenjena sa `013`).
 
