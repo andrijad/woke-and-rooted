@@ -30,3 +30,8 @@
 - Security → Bots: **Bot Fight Mode** uključen.
 - Web Analytics (opciono isključiti): CSP ga blokira, pa samo pravi poruku u konzoli.
 - DNS: posle 2–3 nedelje bez problema sa mejlovima, `_dmarc` promeniti na `v=DMARC1; p=quarantine;`.
+
+## Security Advisor (2026-10-19, posle 042)
+Preostala upozorenja su namerna:
+- `anon/authenticated_security_definer_function_executable` za javne RPC funkcije: `get_open_groups_for_registration`, `get_one_on_one_status`, `get_session_price_info`, `set_email_opt_out`, `get_invite_status` (pristup samo sa tajnim tokenom ili javni podaci), `is_admin` (koriste je RLS pravila), `count_*_signups` (kapacitet) i `admin_*` (iznutra proveravaju `is_admin()`).
+- `auth_leaked_password_protection`: dostupno samo na plaćenom Supabase planu.
