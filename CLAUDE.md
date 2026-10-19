@@ -33,7 +33,7 @@ Aplikacija za studio joge (vlasnica = admin; članovi = korisnici). Vite + React
 - Nalog radi odmah. Mejl nije verifikovan dok se ne podesi SMTP, zato: ako se mejl poklapa sa ručnim članom, postavlja se `profiles.merge_candidate_id` i vlasnica u „Nove registracije“ potvrđuje spajanje (`admin_merge_member`) ili odbija (`admin_dismiss_merge`). Grupa se tada ne upisuje automatski.
 - Svaka nova registracija dobija oznaku **nov član** (`profiles.is_new`); vlasnica je skida u „Izmeni“, a skida se i sama kad vlasnica doda člana u grupu/događaj (trigger `clear_new_on_admin_signup`). `profiles.email_verified` se sinhronizuje sa `auth.users.email_confirmed_at` (trigger `sync_email_verified`); u listi: ✓ ako je potvrđen, crveno „nije potvrđen“ ako nije. Spajanje sa evidencijom (merge) je u redu člana. Vlasnica može ručno da potvrdi email (`admin_confirm_email`, postavlja `auth.users.email_confirmed_at`, pa se član može prijaviti).
 - Brisanje člana ide u dva koraka: **Arhiviraj** (`profiles.archived`, `admin_set_member_archived`; sakriven iz liste, vidljiv preko „Prikaži arhivirane“), pa **Obriši trajno** (`admin_delete_account(p_id, p_with_signups)`; ako član ima prijave traži se dodatna potvrda i brišu se i one). Radi i za članove bez naloga.
-- Novi admin: registracija, pa `update profiles set is_admin = true where email = '…'`.
+- Novi admin: registracija, pa u SQL editoru `update profiles set is_admin = true where email = …` (radi od 045; preko API-ja `is_admin` ne može da se menja).
 - Potvrda mejla zahteva sopstveni SMTP u Supabase-u.
 
 ## Bezbednost (audit 2026-10-17, dopuna 2026-10-18 — vidi `docs/bezbednost.md`)
