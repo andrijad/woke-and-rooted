@@ -1,6 +1,14 @@
 -- 043: Upit za 1 na 1 više ne ide direktno u tabelu, nego preko Edge funkcije submit-session-request,
 -- koja prvo proveri Cloudflare Turnstile. Direktan upis je zatvoren za sve osim service role.
 
+-- Edge funkcije rade kao service_role; u ovom projektu ta uloga nije imala prava nad tabelama
+-- (podrazumevana Supabase prava su bila uklonjena). service_role je samo za server i zaobilazi RLS.
+grant usage on schema public to service_role;
+grant all on all tables in schema public to service_role;
+grant usage, select on all sequences in schema public to service_role;
+alter default privileges in schema public grant all on tables to service_role;
+alter default privileges in schema public grant usage, select on sequences to service_role;
+
 drop policy if exists "oneonone_insert_public" on public.one_on_one_requests;
 revoke insert on public.one_on_one_requests from anon, authenticated;
 
