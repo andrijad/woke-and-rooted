@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react'
+import Turnstile from '../components/Turnstile'
+import { TURNSTILE_SITE_KEY } from '../lib/turnstile'
 import HomeLogo from '../components/HomeLogo'
 import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabaseClient'
@@ -21,6 +23,8 @@ export default function OneOnOneForm() {
   const [sent, setSent] = useState(null) // { token }
   const [copied, setCopied] = useState(false)
   const [priceInfo, setPriceInfo] = useState({})
+  const [captcha, setCaptcha] = useState('')
+  const [captchaKey, setCaptchaKey] = useState(0)
 
   useEffect(() => {
     let cancelled = false
@@ -41,34 +45,40 @@ export default function OneOnOneForm() {
     e.preventDefault()
     setError('')
     if (!form.consent) return setError('Potrebna je saglasnost za obradu podataka.')
-    const token = crypto.randomUUID()
-
     // honeypot: tiho „uspeh“ bez upisa
-    if (form.website) { setSent({ token }); return }
+    if (form.website) { setSent({ token: crypto.randomUUID() }); return }
+
+    if (TURNSTILE_SITE_KEY && !captcha) return setError('Sačekaj da se završi provera „Nisam robot“.')
 
     setSaving(true)
-    const { error: err } = await supabase.from('one_on_one_requests').insert({
-      access_token: token,
-      member_id: profile?.id ?? null,
-      full_name: val('full_name').trim(),
-      email: val('email').trim(),
-      phone: val('phone').trim() || null,
-      session_type: form.session_type,
-      first_time: form.first_time === 'yes',
-      topic: form.topic.trim(),
-      preferred_times: form.preferred_times.trim() || null,
-      mode: form.mode,
-      message: form.message.trim() || null,
-      consent: true
+    const { data, error: err } = await supabase.functions.invoke('submit-session-request', {
+      body: {
+        captchaToken: captcha,
+        full_name: val('full_name').trim(),
+        email: val('email').trim(),
+        phone: val('phone').trim() || null,
+        session_type: form.session_type,
+        first_time: form.first_time === 'yes',
+        topic: form.topic.trim(),
+        preferred_times: form.preferred_times.trim() || null,
+        mode: form.mode,
+        message: form.message.trim() || null,
+        consent: true
+      }
     })
     setSaving(false)
-    if (err) {
-      setError(err.message?.includes('rate_limit')
-        ? 'Sa ove adrese je u poslednjem satu poslato više upita. Pokušaj ponovo malo kasnije.'
-        : 'Slanje nije uspelo. Proveri podatke i pokušaj ponovo.')
+    if (err || !data?.token) {
+      let code = data?.error
+      try { code = code || (await err?.context?.json())?.error } catch { /* nije JSON */ }
+      setError(code === 'rate_limit'
+        ? 'Trenutno ima previše upita. Pokušaj ponovo malo kasnije.'
+        : code === 'captcha'
+          ? 'Provera „Nisam robot“ nije uspela. Sačekaj da se završi pa pokušaj ponovo.'
+          : 'Slanje nije uspelo. Proveri podatke i pokušaj ponovo.')
+      setCaptcha(''); setCaptchaKey(k => k + 1)
       return
     }
-    setSent({ token })
+    setSent({ token: data.token })
   }
 
   const back = session ? '/' : '/login'
@@ -170,6 +180,7 @@ export default function OneOnOneForm() {
               Slažem se da se podaci iz upitnika koriste isključivo za odgovor na moj upit i dogovor termina.
             </label>
 
+            <Turnstile onToken={setCaptcha} resetKey={captchaKey} />
             {error && <p className="error">{error}</p>}
             <button type="submit" disabled={saving}>{saving ? 'Šaljem...' : 'Pošalji upit'}</button>
           </form>

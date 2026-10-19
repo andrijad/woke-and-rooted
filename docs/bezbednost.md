@@ -5,7 +5,8 @@
 - Član ne može da menja status/iznos prijave, ulogu, mejl, nadimak, oznake (`protect_profile_*` trigeri, `validate_member_*`).
 - SECURITY DEFINER funkcije: `set search_path = public`; administratorske proveravaju `is_admin()`; interne (red za mejlove, notifikacije, pomoćne) nemaju EXECUTE za `anon`/`authenticated`.
 - Mejlovi: Edge funkcija zaštićena `CRON_SECRET`-om; sav tekst iz baze se escape-uje, HTML opisa događaja prolazi kroz listu dozvoljenih oznaka.
-- Javna forma za 1 na 1: honeypot, limit 3 upita po mejlu na sat i 10 upita gostiju na sat ukupno (041).
+- Javna forma za 1 na 1: Turnstile + Edge funkcija `submit-session-request` (proverava token, pa upisuje preko service role; direktan upis u tabelu zatvoren, 043), honeypot, limit 3 upita po mejlu na sat i 10 upita gostiju na sat ukupno (041).
+- Kvota mejlova: posle 70 poslatih u danu šalju se samo mejlovi o prijavama, uplatama i nalogu (043).
 - Prijava, registracija i reset lozinke: Cloudflare Turnstile („Nisam robot“), proverava ga Supabase Auth.
 - Headeri (`public/_headers`): CSP, HSTS, X-Frame-Options, nosniff, Referrer-Policy, Permissions-Policy.
 - `npm audit`: 0 ranjivosti (2026-10-18).
@@ -18,6 +19,10 @@
 3. Proveri da se na /login pojavljuje provera.
 4. **Secret key** → Supabase → Authentication → Attack Protection → Enable Captcha protection → Cloudflare Turnstile → nalepi secret → Save.
    Redosled je bitan: prvo 2–3, pa 4 (inače prijava ne radi dok se ne objavi nova verzija).
+
+### Edge funkcija za upit 1 na 1
+- Secret `TURNSTILE_SECRET` (isti Secret Key kao u Attack Protection).
+- Funkcija `submit-session-request` (`supabase/functions/submit-session-request/index.ts`), Verify JWT isključen.
 
 ### Supabase
 - Advisors → **Security Advisor**: pokrenuti i proveriti upozorenja.
